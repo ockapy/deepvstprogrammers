@@ -19,8 +19,8 @@
 #include "Maximilian/maximilian.h"
 #include "Maximilian/libs/maxiFFT.h"
 #include "Maximilian/libs/maxiMFCC.h"
-#include "../JuceLibraryCode/JuceHeader.h"
 #include <boost/python.hpp>
+#include "../JuceLibraryCode/JuceHeader.h"
 
 using namespace juce;
 
