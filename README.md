@@ -44,8 +44,6 @@ You just need to add one line at the end:
 - BOOST_PYTHON_STATIC_LIB
   
 ---  
-
-
-
-
- 
+Now you should be able to build the solution.  
+Once it's done go in the build files and copy renderman.dll.  
+paste it in app/utils folder and rename it librenderman.pyd.

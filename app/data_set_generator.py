@@ -1,12 +1,12 @@
 import sys
 import os
-import cPickle as pickle
+import pickle
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 
 import numpy as np
 import scipy.io.wavfile
-from plugin_feature_extractor import PluginFeatureExtractor
+from utils.plugin_feature_extractor import PluginFeatureExtractor
 from tqdm import trange
 
 
@@ -48,7 +48,7 @@ extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
 
 # print np.array(extractor.overriden_parameters)
 
-path = "/home/tollie/Development/vsts/dexed/Builds/Linux/build/Dexed.so"
+path = "/VST/Dexed.dll"
 # path = "/home/tollie/Development/vsts/synths/granulator/Builds/build-granulator-Desktop-Debug/build/debug/granulator.so"
 # path = "/home/tollie/Downloads/synths/FMSynth/Builds/LinuxMakefile/build/FMSynthesiser.so"
 
@@ -56,15 +56,15 @@ extractor.load_plugin(path)
 
 if extractor.need_to_fit_normalisers():
 
-    print "No normalisers found, fitting new ones."
-    extractor.fit_normalisers(10000)
+    print("No normalisers found, fitting new ones.")
+    extractor.fit_normalisers(100)
 
 
 # Get training and testing batch.
-test_size = 10000
-train_size = 100000
+test_size = 1
+train_size = 1
 
-operator_folder = "data/ieee/"
+operator_folder = "/data/dataset"
 
 
 def get_batches(train_batch_size, test_batch_size, extractor):
@@ -107,4 +107,4 @@ np.save(operator_folder + "/test_x.npy", test_x)
 np.save(operator_folder + "/train_y.npy", train_y)
 np.save(operator_folder + "/test_y.npy", test_y)
 
-print "Finished."
+print ("Finished.")

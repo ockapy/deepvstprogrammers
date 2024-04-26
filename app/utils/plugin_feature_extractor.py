@@ -1,12 +1,16 @@
 import os
+import sys
+
+sys.path.append("./utils")
+
 import warnings
 import numpy as np
 import scipy.io.wavfile
 from tqdm import trange
 import librenderman as rm
 from sklearn import preprocessing
-from sklearn.externals import joblib
-from pyAudioAnalysis import audioFeatureExtraction as fe
+import joblib
+from pyAudioAnalysis import ShortTermFeatures as fe
 
 
 class PluginFeatureExtractor:
@@ -77,7 +81,7 @@ class PluginFeatureExtractor:
     def load_plugin(self, plugin_path):
         self.engine = rm.RenderEngine(self.sample_rate, self.buffer_size, 2048)
         if plugin_path == "":
-            print "Please supply a non-empty path"
+            print ("Please supply a non-empty path")
             return
         if self.engine.load_plugin(plugin_path):
             self.loaded_plugin = True
@@ -85,9 +89,9 @@ class PluginFeatureExtractor:
             for i in range(len(self.overriden_parameters)):
                 index, value = self.overriden_parameters[i]
                 self.engine.override_plugin_parameter(int(index), value)
-            print "Successfully loaded plugin."
+            print ("Successfully loaded plugin.")
         else:
-            print "Unsuccessful loading of plugin: is the path correct?"
+            print ("Unsuccessful loading of plugin: is the path correct?")
 
     def set_patch(self, plugin_patch):
         if self.loaded_plugin:
@@ -103,7 +107,7 @@ class PluginFeatureExtractor:
             self.rendered_patch = True
             return True
         else:
-            print "Please load plugin first"
+            print ("Please load plugin first")
 
     def start_log_resources(self, function_name):
         self.memory.append(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
@@ -116,7 +120,7 @@ class PluginFeatureExtractor:
         self.memory.pop(last_element)
         just_diff = True
         if just_diff and self.diff > 0:
-            print function_name + ", diff: " + str(self.diff) + "kb"
+            print(function_name + ", diff: " + str(self.diff) + "kb")
         # else:
         #     print "    " * self.tab + function_name
         #     print "    " * self.tab + "Diff: " + str(self.diff) + "kb"
@@ -144,7 +148,7 @@ class PluginFeatureExtractor:
             else:
                 return None
         else:
-            print "Please train normalisers using PluginFeatureExtractor.fit_normalisers()."
+            print ("Please train normalisers using PluginFeatureExtractor.fit_normalisers().")
 
     def add_patch_indices(self, patch):
         tuple_patch = []
@@ -158,17 +162,17 @@ class PluginFeatureExtractor:
     def list_patch(self):
         lines = self.engine.get_plugin_parameters_description()
         if self.patch is None:
-            print lines
+            print (lines)
         else:
             lines = lines.split('\n')
             lines_with_values = []
-            print len(lines)
+            print ( len(lines) )
             for i, ln in enumerate(lines):
                 if ln is not "":
                     value = self.patch[i]
                     line = '{0: <22}'.format(ln) + "(" + str(value) + ")"
                     lines_with_values.append(line)
-            print "\n".join(str(x) for x in lines_with_values)
+            print ("\n".join(str(x) for x in lines_with_values))
 
     def get_audio_frames(self):
         if self.rendered_patch:
@@ -177,7 +181,7 @@ class PluginFeatureExtractor:
                 return audio / np.max(np.abs(audio), axis=0)
             return audio
         else:
-            print "Please set and render a patch before trying to get audio frames."
+            print ("Please set and render a patch before trying to get audio frames.")
 
     def write_to_wav(self, path):
         if self.rendered_patch:
@@ -185,7 +189,7 @@ class PluginFeatureExtractor:
             int_audio = self.float_to_int_audio(float_audio)
             scipy.io.wavfile.write(path, 44100, int_audio)
         else:
-            print "Render a patch first before writing to file!"
+            print ("Render a patch first before writing to file!")
 
     def float_to_int_audio(self, float_audio_frames):
         float_audio_frames *= 32768
@@ -205,7 +209,7 @@ class PluginFeatureExtractor:
                 else:
                     return (feature_vector.T, random_patch)
         else:
-            print "Please load plugin first."
+            print ("Please load plugin first.")
 
     def get_desired_features(self, int_audio_frames):
         feature_vector = fe.stFeatureExtraction(int_audio_frames,
@@ -276,16 +280,16 @@ class PluginFeatureExtractor:
                 assert norm_features.T.shape == features.shape
                 return (norm_features.T, patch)
             else:
-                print "Please train normalisers using PluginFeatureExtractor.fit_normalisers()."
+                print ("Please train normalisers using PluginFeatureExtractor.fit_normalisers().")
 
     def fit_normalisers(self, amount):
         if len(self.desired_features_indices) != 21:
-            print "Please set the feature extractor to extract all available features!"
+            print ("Please set the feature extractor to extract all available features!")
             return
         with warnings.catch_warnings():
             warnings.simplefilter(self.warning_mode)
             path = os.path.dirname(os.path.abspath(__file__)) + "/" + self.pickle_path
-            print "\nBeginning to fit normalisers in " + path
+            print ("\nBeginning to fit normalisers in " + path)
             f, _ = self.get_random_example()
             (y, x) = f.shape
 
@@ -300,7 +304,7 @@ class PluginFeatureExtractor:
             normalisers = [preprocessing.MinMaxScaler() for i in range(x)]
             for i in trange(x, desc="Fitting normalisers"):
                 normalisers[i].fit_transform(all_features[i])
-                print all_features[i].shape
+                print (all_features[i].shape)
 
             # Pickle the normalisers for future sessions.
             pickle_paths = self.get_file_paths()
