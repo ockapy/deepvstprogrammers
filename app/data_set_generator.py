@@ -1,3 +1,4 @@
+import glob
 import sys
 import os
 import pickle
@@ -9,48 +10,45 @@ import scipy.io.wavfile
 from utils.plugin_feature_extractor import PluginFeatureExtractor
 from tqdm import trange
 
+def clear():
+    norm_files = glob.glob("app/utils/normalisers/*")
+    audio_files = glob.glob("app/data/dataset/*")
+    for f in norm_files:
+        os.remove(f)
+    for f in audio_files:
+        os.remove(f)
 
 algorithm_number = 18
 # Works:  1-15
 # Bleh:  16-19
 # Works: 20-32
 alg = (1.0 / 32.0) * float(algorithm_number - 1) + 0.001
-overriden_parameters = [(0, 1.0), (1, 0.0), (2, 1.0), (3, 0.0), (4, alg)]
+overriden_parameters = [(0, 1.0), (1, 0.0), (2, 1.0), (3, 0.0), (4, alg), (6,0.0),
+                        (7,0.0), (8,0.0), (9,0.0), (10,0.), (11,0.0), (12,0.0),
+                        (26, 1.),  (30, 0.),  (48, 1.),  (52, 0.), 
+                        (70, 1.),  (74, 0.),  (92, 1.),  (96, 0.), 
+                        (114, 1.), (118, 0.), (136, 1.), (140, 0.)]
 
-other_params = [((i + 5), 0.5) for i in range(18)]
+# other_params = [((i + 5), 0.5) for i in range(18)]
 
-# operator_one = [((i + 23), 0.0) for i in range(22)]
-# operator_two = [((i + 45), 0.0) for i in range(22)]
-# operator_thr = [((i + 67), 0.0) for i in range(22)]
-# operator_fou = [((i + 89), 0.0) for i in range(22)]
-# operator_fiv = [((i + 111), 0.0) for i in range(22)]
-# operator_six = [((i + 133), 0.0) for i in range(22)]
+# overriden_parameters.extend(other_params)
 
-# overriden_parameters.extend(operator_one)
-# overriden_parameters.extend(operator_two)
-# overriden_parameters.extend(operator_thr)
-# overriden_parameters.extend(operator_fou)
-# overriden_parameters.extend(operator_fiv)
-# overriden_parameters.extend(operator_six)
-overriden_parameters.extend(other_params)
-
-# overriden_parameters = np.load("data/fm/overriden_parameters.npy").tolist()
-# desired_features = np.load("data/fm/desired_features.npy").tolist()
-
-desired_features = [0, 1, 6]
-desired_features.extend([i for i in range(3, 21)])
-extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
+desired_features = [0,1,6]
+desired_features.extend([i for i in range(len(desired_features), 21)])
+extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=4.0,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
-                                   render_length_secs=0.7,
-                                   pickle_path="utils/normalisers",
+                                   render_length_secs=5.0,
+                                   pickle_path="app/utils/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
 # print np.array(extractor.overriden_parameters)
 
-path = "C:/Users/maxim/Documents/!Stage/GIT/deepvstprogrammers/app/VST/Dexed.dll"
+path = "app/VST/Dexed.dll"
 # path = "/home/tollie/Development/vsts/synths/granulator/Builds/build-granulator-Desktop-Debug/build/debug/granulator.so"
 # path = "/home/tollie/Downloads/synths/FMSynth/Builds/LinuxMakefile/build/FMSynthesiser.so"
+
+clear()
 
 extractor.load_plugin(path)
 
@@ -61,10 +59,10 @@ if extractor.need_to_fit_normalisers():
 
 
 # Get training and testing batch.
-test_size = 1
-train_size = 1
+test_size = 10
+train_size = 10
 
-operator_folder = "/data/dataset"
+operator_folder = "app/data/dataset/"
 
 
 def get_batches(train_batch_size, test_batch_size, extractor):
@@ -108,3 +106,4 @@ np.save(operator_folder + "/train_y.npy", train_y)
 np.save(operator_folder + "/test_y.npy", test_y)
 
 print ("Finished.")
+
