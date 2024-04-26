@@ -268,11 +268,11 @@ class PluginFeatureExtractor:
 
                 features, patch = self.get_random_example()
 
-                normalised_features = []
+            
                 index = 0
                 for i in range(len(normalisers)):
                     if i in self.desired_features_indices:
-                        normalised_features.append(normalisers[i].transform(features.T[index]))
+                        normalised_features= normalisers[i].transform(features.T)
                         index += 1
 
                 norm_features = np.array(normalised_features)
