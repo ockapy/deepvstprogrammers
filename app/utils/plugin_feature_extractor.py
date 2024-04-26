@@ -83,7 +83,7 @@ class PluginFeatureExtractor:
         if plugin_path == "":
             print ("Please supply a non-empty path")
             return
-        if self.engine.load_plugin(plugin_path):
+        if self.engine.load_plugin(plugin_path,0):
             self.loaded_plugin = True
             self.generator = rm.PatchGenerator(self.engine)
             for i in range(len(self.overriden_parameters)):
@@ -212,13 +212,13 @@ class PluginFeatureExtractor:
             print ("Please load plugin first.")
 
     def get_desired_features(self, int_audio_frames):
-        feature_vector = fe.stFeatureExtraction(int_audio_frames,
+        feature_vector = fe.feature_extraction(int_audio_frames,
                                                 self.sample_rate,
                                                 self.frame_size_samples,
                                                 self.frame_step_samples)
         output = []
         for desired_index in self.desired_features_indices:
-            output.append(feature_vector[desired_index])
+            output.append(feature_vector[0][desired_index])
         return np.array(output)
 
     def get_file_paths(self):

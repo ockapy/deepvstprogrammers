@@ -38,7 +38,7 @@ overriden_parameters.extend(other_params)
 # desired_features = np.load("data/fm/desired_features.npy").tolist()
 
 desired_features = [0, 1, 6]
-desired_features.extend([i for i in range(8, 21)])
+desired_features.extend([i for i in range(3, 21)])
 extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
@@ -48,7 +48,7 @@ extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
 
 # print np.array(extractor.overriden_parameters)
 
-path = "/VST/Dexed.dll"
+path = "C:/Users/maxim/Documents/!Stage/GIT/deepvstprogrammers/app/VST/Dexed.dll"
 # path = "/home/tollie/Development/vsts/synths/granulator/Builds/build-granulator-Desktop-Debug/build/debug/granulator.so"
 # path = "/home/tollie/Downloads/synths/FMSynth/Builds/LinuxMakefile/build/FMSynthesiser.so"
 
