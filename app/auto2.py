@@ -4,6 +4,7 @@ import pickle
 import warnings
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
+dir = os.path.dirname(__file__)
 
 from models.hill_climber.hill_climber import HillClimber
 from utils.plugin_feature_extractor import PluginFeatureExtractor
@@ -13,19 +14,19 @@ from tqdm import trange
 
 with warnings.catch_warnings():
     # Load VST.
-    operator_folder = "six_operator"
-    data_folder = "data/overriden/" + operator_folder + "/"
+    operator_folder = ""
+    data_folder = dir+"/data/dataset/"
     desired_features = [0,1,6]
     desired_features.extend([i for i in range(len(desired_features), 21)])
-    overriden_parameters = np.load(data_folder + "overriden_parameters.npy").tolist()
+    overriden_parameters = np.load(data_folder+"overriden_parameters.npy").tolist()
     extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=4.0,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
                                    render_length_secs=5.0,
-                                   pickle_path="app/utils/normalisers",
+                                   pickle_path=dir+"/utils/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
-    path = "app/VST/Dexed.dll"
+    path = dir+"/VST/Dexed.dll"
     extractor.load_plugin(path)
 
     if extractor.need_to_fit_normalisers():
@@ -67,16 +68,16 @@ with warnings.catch_warnings():
 
         print("\nHill Climber: ")
         hill_climber.optimise()
-    #   hill_prediction = hill_climber.prediction()
-    #    hill_climber_stats = get_stats(extractor,
-    #                                   hill_prediction,
-    #                                   test_x,
-    #                                   test_y)
-    #    model_errors['hill_climber'] += [hill_climber_stats[0]]
+        hill_prediction = hill_climber.prediction()
+        hill_climber_stats = get_stats(extractor,
+                                      hill_prediction,
+                                      test_x,
+                                      test_y)
+        model_errors['hill_climber'] += [hill_climber_stats[0]]
 
-#        print "Hill: " + str(hill_climber_stats[0])
-#
-#        print "Start iteration " + str(iteration) + " pickling."
-#        pickle.dump(hill_climber_stats, open("stats/" + operator_folder + #"/hill_climber.p", "wb"))
-#        pickle.dump(model_errors, open("stats/" + operator_folder + #"/all_hills_error.p", "wb"))
-#        print "Finished iteration " + str(iteration) + " pickling."
+        print ("Hill: " + str(hill_climber_stats[0]))
+
+        # print ("Start iteration " + str(iteration) + " pickling.")
+        # pickle.dump(hill_climber_stats, open("stats/" + operator_folder + "/hill_climber.p", "wb"))
+        # pickle.dump(model_errors, open("stats/" + operator_folder + "/all_hills_error.p", "wb"))
+        # print ("Finished iteration " + str(iteration) + " pickling.")

@@ -135,11 +135,10 @@ class PluginFeatureExtractor:
                 if contains_nan:
                     feature_vector = np.zeros_like(feature_vector)
                 normalisers = [joblib.load(files[i]) for i in range(len(files))]
-                normalised_features = []
                 index = 0
                 for i in range(len(normalisers)):
                     if i in self.desired_features_indices:
-                        normalised_features.append(normalisers[i].transform(feature_vector[index]))
+                        normalised_features=(normalisers[i].transform(feature_vector))
                         index += 1
                 norm_features = np.array(normalised_features)
                 return norm_features.T
