@@ -55,12 +55,12 @@ extractor.load_plugin(path)
 if extractor.need_to_fit_normalisers():
 
     print("No normalisers found, fitting new ones.")
-    extractor.fit_normalisers(100)
+    extractor.fit_normalisers(1000)
 
 
 # Get training and testing batch.
-test_size = 10
-train_size = 10
+test_size = 1
+train_size = 1
 
 operator_folder = "app/data/dataset/"
 

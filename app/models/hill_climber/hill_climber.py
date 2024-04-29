@@ -40,6 +40,7 @@ class HillClimber:
             self.target_index = t
             for i in range(len(self.current_point[t])):
                 best_score = self.get_fitness(self.current_point[t])
+                print("Fitness of current point: "+best_score)
                 best = 2
                 for j in range(len(self.candidate)):
                     increment = self.step_size[t][i] * self.candidate[j]

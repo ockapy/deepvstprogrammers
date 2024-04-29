@@ -1,30 +1,31 @@
 import sys
 import os
-import cPickle as pickle
+import pickle
 import warnings
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'models/hill_climber'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 
-from hill_climber import HillClimber
-from plugin_feature_extractor import PluginFeatureExtractor
+from models.hill_climber.hill_climber import HillClimber
+from utils.plugin_feature_extractor import PluginFeatureExtractor
 import numpy as np
-from utility_functions import get_batches, get_stats, display_stats, plot_error, write_wavs
+from utils.utility_functions import get_batches, get_stats, display_stats, plot_error, write_wavs
 from tqdm import trange
 
 with warnings.catch_warnings():
     # Load VST.
     operator_folder = "six_operator"
     data_folder = "data/overriden/" + operator_folder + "/"
+    desired_features = [0,1,6]
+    desired_features.extend([i for i in range(len(desired_features), 21)])
     overriden_parameters = np.load(data_folder + "overriden_parameters.npy").tolist()
-    extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
-                                       desired_features=[i for i in range(8, 21)],
-                                       overriden_parameters=overriden_parameters,
-                                       render_length_secs=0.7,
-                                       pickle_path="utils/normalisers",
-                                       warning_mode="ignore",
-                                       normalise_audio=False)
-    path = "/home/tollie/Development/vsts/dexed/Builds/Linux/build/Dexed.so"
+    extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=4.0,
+                                   desired_features=desired_features,
+                                   overriden_parameters=overriden_parameters,
+                                   render_length_secs=5.0,
+                                   pickle_path="app/utils/normalisers",
+                                   warning_mode="ignore", normalise_audio=False)
+
+    path = "app/VST/Dexed.dll"
     extractor.load_plugin(path)
 
     if extractor.need_to_fit_normalisers():
@@ -32,8 +33,8 @@ with warnings.catch_warnings():
 
     # Get training and testing batch.
     nn_train_pass = 20
-    test_size = 30
-    train_size = 32
+    test_size = 1
+    train_size = 1
     iterations = 15
     train_x = np.load(data_folder + "train_x.npy")
     train_y = np.load(data_folder + "train_y.npy")
@@ -62,9 +63,9 @@ with warnings.catch_warnings():
 
     for iteration in range(iterations):
 
-        print "\n*** Iteration: " + str(iteration) + " ***"
+        print ("\n*** Iteration: " + str(iteration) + " ***")
 
-        print "\nHill Climber: "
+        print("\nHill Climber: ")
         hill_climber.optimise()
     #   hill_prediction = hill_climber.prediction()
     #    hill_climber_stats = get_stats(extractor,

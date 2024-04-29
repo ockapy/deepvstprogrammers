@@ -82,7 +82,7 @@ def get_stats(extractor, predicted_patches, actual_features, actual_patches):
         average_error += (error / len(predicted_patches))
         all_errors.append(error)
 
-        print "    (" + str(i) + ") error: " + str(error)
+        print ("    (" + str(i) + ") error: " + str(error))
 
         if error < lowest_error:
             lowest_error = error
@@ -176,12 +176,12 @@ def write_wavs(name, predicted_patch, actual_patch, extractor):
     extractor.set_patch(extractor.add_patch_indices(predicted_patch))
     p_audio = extractor.get_audio_frames()
     p_audio /= np.max(np.abs(p_audio), axis=0)
-    print p_audio[::500]
+    print (p_audio[::500])
     with open(name + "predicted.wav", "w") as p_wav_file:
         p_wav_file.write(float32_wav_file(p_audio, 44100))
     extractor.set_patch(extractor.add_patch_indices(actual_patch))
     a_audio = extractor.get_audio_frames()
     a_audio /= np.max(np.abs(a_audio), axis=0)
-    print a_audio[::500]
+    print (a_audio[::500])
     with open(name + "actual.wav", "w") as a_wav_file:
         a_wav_file.write(float32_wav_file(a_audio, 44100))
