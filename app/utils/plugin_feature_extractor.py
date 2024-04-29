@@ -40,13 +40,13 @@ class PluginFeatureExtractor:
 
     def partial_patch_to_patch(self, partial_patch):
         """"""
-        if self.total_overriden is 0:
+        if self.total_overriden == 0:
             return partial_patch
         patch = []
         overriden_counter = 0
         partial_counter = 0
         parameter_size = self.engine.get_plugin_parameter_size()
-        assert parameter_size is not 0
+        assert parameter_size != 0
         for i in range(parameter_size):
             if overriden_counter < len(self.overriden_parameters) and \
                i == self.overriden_parameters[overriden_counter][0]:
@@ -63,7 +63,7 @@ class PluginFeatureExtractor:
         partial_patch = []
         overriden_counter = 0
         partial_counter = 0
-        if self.total_overriden is 0:
+        if self.total_overriden == 0:
             return patch
         parameter_size = self.engine.get_plugin_parameter_size()
         for i in range(parameter_size):
@@ -158,7 +158,7 @@ class PluginFeatureExtractor:
 
     def list_patch(self):
         lines = self.engine.get_plugin_parameters_description()
-        if self.patch is None:
+        if self.patch == None:
             print (lines)
         else:
             lines = lines.split('\n')
