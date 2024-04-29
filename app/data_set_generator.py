@@ -10,9 +10,11 @@ import scipy.io.wavfile
 from utils.plugin_feature_extractor import PluginFeatureExtractor
 from tqdm import trange
 
+dir = os.path.dirname(__file__)
+
 def clear():
-    norm_files = glob.glob("app/utils/normalisers/*")
-    audio_files = glob.glob("app/data/dataset/*")
+    norm_files = glob.glob(dir+"/utils/normalisers/*")
+    audio_files = glob.glob(dir+"/data/dataset/*")
     for f in norm_files:
         os.remove(f)
     for f in audio_files:
@@ -35,16 +37,16 @@ overriden_parameters = [(0, 1.0), (1, 0.0), (2, 1.0), (3, 0.0), (4, alg), (6,0.0
 
 desired_features = [0,1,6]
 desired_features.extend([i for i in range(len(desired_features), 21)])
-extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=4.0,
+extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
-                                   render_length_secs=5.0,
-                                   pickle_path="app/utils/normalisers",
+                                   render_length_secs=0.7,
+                                   pickle_path=dir+"/utils/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
 # print np.array(extractor.overriden_parameters)
 
-path = "app/VST/Dexed.dll"
+path = dir+"/VST/Dexed.dll"
 # path = "/home/tollie/Development/vsts/synths/granulator/Builds/build-granulator-Desktop-Debug/build/debug/granulator.so"
 # path = "/home/tollie/Downloads/synths/FMSynth/Builds/LinuxMakefile/build/FMSynthesiser.so"
 
@@ -55,14 +57,14 @@ extractor.load_plugin(path)
 if extractor.need_to_fit_normalisers():
 
     print("No normalisers found, fitting new ones.")
-    extractor.fit_normalisers(1000)
+    extractor.fit_normalisers(500)
 
 
 # Get training and testing batch.
 test_size = 1
 train_size = 1
 
-operator_folder = "app/data/dataset/"
+operator_folder = dir+"/data/dataset/"
 
 
 def get_batches(train_batch_size, test_batch_size, extractor):
