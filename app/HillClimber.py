@@ -2,6 +2,8 @@ import sys
 import os
 import pickle
 import warnings
+import matplotlib.pyplot as plt
+import scipy
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 dir = os.path.dirname(__file__)
@@ -19,10 +21,10 @@ with warnings.catch_warnings():
     desired_features = [0,1,6]
     desired_features.extend([i for i in range(len(desired_features), 21)])
     overriden_parameters = np.load(data_folder+"overriden_parameters.npy").tolist()
-    extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
+    extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=3.0,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
-                                   render_length_secs=0.7,
+                                   render_length_secs=4.0,
                                    pickle_path=dir+"/utils/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
@@ -36,7 +38,7 @@ with warnings.catch_warnings():
     nn_train_pass = 20
     test_size = 1
     train_size = 1
-    iterations = 15
+    iterations = 1
     train_x = np.load(data_folder + "train_x.npy")
     train_y = np.load(data_folder + "train_y.npy")
     test_x = np.load(data_folder + "test_x.npy")[0:test_size]
@@ -78,6 +80,23 @@ with warnings.catch_warnings():
         print ("Hill: " + str(hill_climber_stats[0]))
 
         print ("Start iteration " + str(iteration) + " pickling.")
-        pickle.dump(hill_climber_stats, open("stats/" + operator_folder + "/hill_climber.p", "wb"))
-        pickle.dump(model_errors, open("stats/" + operator_folder + "/all_hills_error.p", "wb"))
+        pickle.dump(hill_climber_stats, open(dir+"/stats" + operator_folder + "/hill_climber.p", "wb"))
+        pickle.dump(model_errors, open(dir+"/stats" + operator_folder + "/all_hills_error.p", "wb"))
         print ("Finished iteration " + str(iteration) + " pickling.")
+        
+        print("Orignal sample:\n")
+        plt.plot(extractor.get_audio_frames())
+        
+        print("\n Hill climb sample: \n")
+        patch = hill_climber.current_point[0]
+        temp = extractor.partial_patch_to_patch(patch)
+        hill_patch = extractor.add_patch_indices(temp)
+        extractor.set_patch(hill_patch)
+        
+        plt.plot(extractor.get_audio_frames())
+    
+        audio = extractor.float_to_int_audio(extractor.get_audio_frames())
+        location = dir + '/stats/' + "HillClimber" + '.wav'
+        scipy.io.wavfile.write(location, 44100, audio)
+
+        plt.show()

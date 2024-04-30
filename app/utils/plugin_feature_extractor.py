@@ -165,7 +165,7 @@ class PluginFeatureExtractor:
             lines_with_values = []
             print ( len(lines) )
             for i, ln in enumerate(lines):
-                if ln is not "":
+                if ln != "":
                     value = self.patch[i]
                     line = '{0: <22}'.format(ln) + "(" + str(value) + ")"
                     lines_with_values.append(line)
