@@ -19,10 +19,10 @@ with warnings.catch_warnings():
     desired_features = [0,1,6]
     desired_features.extend([i for i in range(len(desired_features), 21)])
     overriden_parameters = np.load(data_folder+"overriden_parameters.npy").tolist()
-    extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=4.0,
+    extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
-                                   render_length_secs=5.0,
+                                   render_length_secs=0.7,
                                    pickle_path=dir+"/utils/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
@@ -52,7 +52,7 @@ with warnings.catch_warnings():
     hill_climber = HillClimber(extractor=extractor, target_features=test_x,
                                feature_size=(features_cols * features_rows),
                                parameter_size=parameter_size,
-                               averaging_amount=4)
+                               averaging_amount=1)
 
     model_errors = {
         'hill_climber': [],
@@ -77,7 +77,7 @@ with warnings.catch_warnings():
 
         print ("Hill: " + str(hill_climber_stats[0]))
 
-        # print ("Start iteration " + str(iteration) + " pickling.")
-        # pickle.dump(hill_climber_stats, open("stats/" + operator_folder + "/hill_climber.p", "wb"))
-        # pickle.dump(model_errors, open("stats/" + operator_folder + "/all_hills_error.p", "wb"))
-        # print ("Finished iteration " + str(iteration) + " pickling.")
+        print ("Start iteration " + str(iteration) + " pickling.")
+        pickle.dump(hill_climber_stats, open("stats/" + operator_folder + "/hill_climber.p", "wb"))
+        pickle.dump(model_errors, open("stats/" + operator_folder + "/all_hills_error.p", "wb"))
+        print ("Finished iteration " + str(iteration) + " pickling.")
