@@ -2,8 +2,8 @@
 
 <JUCERPROJECT id="EHAJpP" name="RenderMan" projectType="dll" version="1.0.0"
               bundleIdentifier="com.yourcompany.RenderMan" includeBinaryInAppConfig="1"
-              jucerVersion="5.2.0" displaySplashScreen="0" reportAppUsage="0"
-              splashScreenColour="Dark" cppLanguageStandard="11" companyCopyright="">
+              displaySplashScreen="1" reportAppUsage="0" splashScreenColour="Dark"
+              companyCopyright="" jucerFormatVersion="1">
   <MAINGROUP id="tONOKg" name="RenderMan">
     <GROUP id="{4A809F36-0B47-21E3-7688-8CF65B68EF74}" name="Maximilian">
       <GROUP id="{581DA4A2-AF43-FE18-47C2-CA1585A8F30E}" name="libs">
@@ -34,103 +34,74 @@
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="librenderman.so"
                        osxCompatibility="10.9 SDK" osxArchitecture="Native" headerPath="/usr/include/python2.7&#10;/usr/local/include&#10;"
-                       libraryPath="/usr/local/lib" enablePluginBinaryCopyStep="1"/>
+                       libraryPath="/usr/local/lib" enablePluginBinaryCopyStep="1" macOSDeploymentTarget="10.9"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="librenderman.so"
                        osxCompatibility="10.9 SDK" osxArchitecture="Native" headerPath="/usr/include/python2.7&#10;/usr/local/include&#10;"
-                       libraryPath="/usr/local/lib" enablePluginBinaryCopyStep="1"/>
+                       libraryPath="/usr/local/lib" enablePluginBinaryCopyStep="1" macOSDeploymentTarget="10.9"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_core" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_events" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_graphics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_data_structures" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_cryptography" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_video" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_opengl" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_basics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_video" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
-    <VS2015 targetFolder="Builds/VisualStudio2015" vst3Folder="VST3_SDK"
-            windowsTargetPlatformVersion="8.1">
-      <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" winWarningLevel="4" generateManifest="1" winArchitecture="x64"
-                       isDebug="1" optimisation="1" targetName="renderman" debugInformationFormat="ProgramDatabase"
-                       enablePluginBinaryCopyStep="0"/>
-        <CONFIGURATION name="Release" winWarningLevel="4" generateManifest="1" winArchitecture="x64"
-                       isDebug="0" optimisation="3" targetName="renderman" debugInformationFormat="ProgramDatabase"
-                       enablePluginBinaryCopyStep="0" linkTimeOptimisation="1"/>
-      </CONFIGURATIONS>
-      <MODULEPATHS>
-        <MODULEPATH id="juce_core" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_events" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_graphics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_data_structures" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_cryptography" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_video" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_opengl" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_basics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="JuceLibraryCode/modules"/>
-      </MODULEPATHS>
-    </VS2015>
-    <VS2013 targetFolder="Builds/VisualStudio2013" vst3Folder="VST3_SDK"
-            windowsTargetPlatformVersion="8.1">
-      <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" winWarningLevel="4" generateManifest="1" winArchitecture="x64"
-                       isDebug="1" optimisation="1" targetName="renderman" debugInformationFormat="ProgramDatabase"
-                       enablePluginBinaryCopyStep="0"/>
-        <CONFIGURATION name="Release" winWarningLevel="4" generateManifest="1" winArchitecture="x64"
-                       isDebug="0" optimisation="3" targetName="renderman" debugInformationFormat="ProgramDatabase"
-                       enablePluginBinaryCopyStep="0" linkTimeOptimisation="1"/>
-      </CONFIGURATIONS>
-      <MODULEPATHS>
-        <MODULEPATH id="juce_core" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_events" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_graphics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_data_structures" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_cryptography" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_video" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_opengl" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_basics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="JuceLibraryCode/modules"/>
-      </MODULEPATHS>
-    </VS2013>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" vst3Folder="VST3_SDK" extraCompilerFlags="-fPIC"
                 extraLinkerFlags="-shared -lpython2.7 -lboost_python" cppLanguageStandard="-std=c++11">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="renderman"
-                       headerPath="/usr/include/python2.7"/>
+                       headerPath="/usr/include/python3.9"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="renderman"
-                       headerPath="/usr/include/python2.7"/>
+                       headerPath="/usr/include/python3.9"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_core" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_events" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_graphics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_data_structures" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_cryptography" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_video" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_opengl" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_basics" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="JuceLibraryCode/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_video" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
+    <VS2022 targetFolder="Builds/VisualStudio2022">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" headerPath="C:\Boost\include\boost-1_85&#10;C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python39_64\include"
+                       libraryPath="C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python39_64\libs&#10;C:\Boost\lib"
+                       targetName="RenderMan" defines="BOOST_PYTHON_STATIC_LIB"/>
+        <CONFIGURATION isDebug="0" name="Release"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_video" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
+      </MODULEPATHS>
+    </VS2022>
   </EXPORTFORMATS>
   <MODULES>
     <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="1" useGlobalPath="0"/>
@@ -147,9 +118,8 @@
     <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="1" useGlobalPath="0"/>
     <MODULE id="juce_video" showAllCode="1" useLocalCopy="1" useGlobalPath="0"/>
   </MODULES>
-  <JUCEOPTIONS JUCE_PLUGINHOST_VST="enabled" JUCE_PLUGINHOST_VST3="enabled"
-               JUCE_PLUGINHOST_AU="enabled" JUCE_CHECK_MEMORY_LEAKS="disabled"
-               JUCE_WEB_BROWSER="disabled"/>
+  <JUCEOPTIONS JUCE_PLUGINHOST_VST="1" JUCE_PLUGINHOST_VST3="1" JUCE_PLUGINHOST_AU="1"
+               JUCE_CHECK_MEMORY_LEAKS="0" JUCE_WEB_BROWSER="0"/>
   <LIVE_SETTINGS>
     <LINUX/>
   </LIVE_SETTINGS>

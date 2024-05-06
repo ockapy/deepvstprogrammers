@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -30,6 +30,8 @@ namespace juce
     Once created, the TextDiff object contains an array of change objects, where
     each change can be either an insertion or a deletion. When applied in order
     to the original string, these changes will convert it to the target string.
+
+    @tags{Core}
 */
 class JUCE_API TextDiff
 {

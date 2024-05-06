@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -26,7 +25,8 @@
 
 #if JUCE_MAC || JUCE_IOS
 
-#include "../../juce_audio_basics/native/juce_mac_CoreAudioLayouts.h"
+#include <juce_audio_basics/native/juce_CoreAudioLayouts_mac.h>
+#include <juce_core/native/juce_CFHelpers_mac.h>
 
 namespace juce
 {
@@ -36,23 +36,68 @@ namespace
 {
     const char* const coreAudioFormatName = "CoreAudio supported file";
 
-    StringArray findFileExtensionsForCoreAudioCodecs()
+    StringArray getStringInfo (AudioFilePropertyID property, UInt32 size, void* data)
     {
+        CFObjectHolder<CFArrayRef> extensions;
+        UInt32 sizeOfArray = sizeof (extensions.object);
+
+        const auto err = AudioFileGetGlobalInfo (property,
+                                                 size,
+                                                 data,
+                                                 &sizeOfArray,
+                                                 &extensions.object);
+
+        if (err != noErr)
+            return {};
+
+        const auto numValues = CFArrayGetCount (extensions.object);
+
         StringArray extensionsArray;
-        CFArrayRef extensions = nullptr;
-        UInt32 sizeOfArray = sizeof (extensions);
 
-        if (AudioFileGetGlobalInfo (kAudioFileGlobalInfo_AllExtensions, 0, 0, &sizeOfArray, &extensions) == noErr)
-        {
-            const CFIndex numValues = CFArrayGetCount (extensions);
-
-            for (CFIndex i = 0; i < numValues; ++i)
-                extensionsArray.add ("." + String::fromCFString ((CFStringRef) CFArrayGetValueAtIndex (extensions, i)));
-
-            CFRelease (extensions);
-        }
+        for (CFIndex i = 0; i < numValues; ++i)
+            extensionsArray.add ("." + String::fromCFString ((CFStringRef) CFArrayGetValueAtIndex (extensions.object, i)));
 
         return extensionsArray;
+    }
+
+    StringArray findFileExtensionsForCoreAudioCodec (AudioFileTypeID type)
+    {
+        return getStringInfo (kAudioFileGlobalInfo_ExtensionsForType, sizeof (AudioFileTypeID), &type);
+    }
+
+    StringArray findFileExtensionsForCoreAudioCodecs()
+    {
+        return getStringInfo (kAudioFileGlobalInfo_AllExtensions, 0, nullptr);
+    }
+
+    static AudioFileTypeID toAudioFileTypeID (CoreAudioFormat::StreamKind kind)
+    {
+        using StreamKind = CoreAudioFormat::StreamKind;
+
+        switch (kind)
+        {
+            case StreamKind::kAiff:                 return kAudioFileAIFFType;
+            case StreamKind::kAifc:                 return kAudioFileAIFCType;
+            case StreamKind::kWave:                 return kAudioFileWAVEType;
+            case StreamKind::kSoundDesigner2:       return kAudioFileSoundDesigner2Type;
+            case StreamKind::kNext:                 return kAudioFileNextType;
+            case StreamKind::kMp3:                  return kAudioFileMP3Type;
+            case StreamKind::kMp2:                  return kAudioFileMP2Type;
+            case StreamKind::kMp1:                  return kAudioFileMP1Type;
+            case StreamKind::kAc3:                  return kAudioFileAC3Type;
+            case StreamKind::kAacAdts:              return kAudioFileAAC_ADTSType;
+            case StreamKind::kMpeg4:                return kAudioFileMPEG4Type;
+            case StreamKind::kM4a:                  return kAudioFileM4AType;
+            case StreamKind::kM4b:                  return kAudioFileM4BType;
+            case StreamKind::kCaf:                  return kAudioFileCAFType;
+            case StreamKind::k3gp:                  return kAudioFile3GPType;
+            case StreamKind::k3gp2:                 return kAudioFile3GP2Type;
+            case StreamKind::kAmr:                  return kAudioFileAMRType;
+
+            case StreamKind::kNone:                 break;
+        }
+
+        return {};
     }
 }
 
@@ -122,14 +167,14 @@ struct CoreAudioFormatMetatdata
     static StringPairArray parseUserDefinedChunk (InputStream& input, int64 size)
     {
         StringPairArray infoStrings;
-        const int64 originalPosition = input.getPosition();
+        auto originalPosition = input.getPosition();
 
         uint8 uuid[16];
         input.read (uuid, sizeof (uuid));
 
         if (memcmp (uuid, "\x29\x81\x92\x73\xB5\xBF\x4A\xEF\xB7\x8D\x62\xD1\xEF\x90\xBB\x2C", 16) == 0)
         {
-            const uint32 numEntries = (uint32) input.readIntBigEndian();
+            auto numEntries = (uint32) input.readIntBigEndian();
 
             for (uint32 i = 0; i < numEntries && input.getPosition() < originalPosition + size; ++i)
             {
@@ -222,7 +267,7 @@ struct CoreAudioFormatMetatdata
         for (int i = 0; i < numTimeSigEvents; ++i)
         {
             int numerator, denominator;
-            timeSigEvents.getEventPointer(i)->message.getTimeSignatureInfo (numerator, denominator);
+            timeSigEvents.getEventPointer (i)->message.getTimeSignatureInfo (numerator, denominator);
 
             String timeSigString;
             timeSigString << numerator << '/' << denominator;
@@ -314,7 +359,7 @@ struct CoreAudioFormatMetatdata
                     if (chunkHeader.chunkSize == -1)
                         break;
 
-                    input.skipNextBytes (chunkHeader.chunkSize);
+                    input.setPosition (input.getPosition() + chunkHeader.chunkSize);
                 }
                 else if (chunkHeader.chunkType == chunkName ("midi"))
                 {
@@ -327,7 +372,7 @@ struct CoreAudioFormatMetatdata
                 else
                 {
                     // we aren't decoding this chunk yet so just skip over it
-                    input.skipNextBytes (chunkHeader.chunkSize);
+                    input.setPosition (input.getPosition() + chunkHeader.chunkSize);
                 }
             }
         }
@@ -339,10 +384,13 @@ struct CoreAudioFormatMetatdata
 };
 
 //==============================================================================
-class CoreAudioReader : public AudioFormatReader
+class CoreAudioReader final : public AudioFormatReader
 {
 public:
-    CoreAudioReader (InputStream* inp)  : AudioFormatReader (inp, coreAudioFormatName)
+    using StreamKind = CoreAudioFormat::StreamKind;
+
+    CoreAudioReader (InputStream* inp, StreamKind streamKind)
+        : AudioFormatReader (inp, coreAudioFormatName)
     {
         usesFloatingPointData = true;
         bitsPerSample = 32;
@@ -350,13 +398,13 @@ public:
         if (input != nullptr)
             CoreAudioFormatMetatdata::read (*input, metadataValues);
 
-        OSStatus status = AudioFileOpenWithCallbacks (this,
-                                                      &readCallback,
-                                                      nullptr,  // write needs to be null to avoid permisisions errors
-                                                      &getSizeCallback,
-                                                      nullptr,  // setSize needs to be null to avoid permisisions errors
-                                                      0,        // AudioFileTypeID inFileTypeHint
-                                                      &audioFileID);
+        auto status = AudioFileOpenWithCallbacks (this,
+                                                  &readCallback,
+                                                  nullptr,  // write needs to be null to avoid permissions errors
+                                                  &getSizeCallback,
+                                                  nullptr,  // setSize needs to be null to avoid permissions errors
+                                                  toAudioFileTypeID (streamKind),
+                                                  &audioFileID);
         if (status == noErr)
         {
             status = ExtAudioFileWrapAudioFileID (audioFileID, false, &audioFileRef);
@@ -385,7 +433,7 @@ public:
 
                 status = AudioFileGetPropertyInfo (audioFileID, kAudioFilePropertyChannelLayout, &sizeOfLayout, &isWritable);
 
-                if (status == noErr)
+                if (status == noErr && sizeOfLayout >= (sizeof (AudioChannelLayout) - sizeof (AudioChannelDescription)))
                 {
                     caLayout.malloc (1, static_cast<size_t> (sizeOfLayout));
 
@@ -447,14 +495,14 @@ public:
         }
     }
 
-    ~CoreAudioReader()
+    ~CoreAudioReader() override
     {
         ExtAudioFileDispose (audioFileRef);
         AudioFileClose (audioFileID);
     }
 
     //==============================================================================
-    bool readSamples (int** destSamples, int numDestChannels, int startOffsetInDestBuffer,
+    bool readSamples (int* const* destSamples, int numDestChannels, int startOffsetInDestBuffer,
                       int64 startSampleInFile, int numSamples) override
     {
         clearSamplesBeyondAvailableLength (destSamples, numDestChannels, startOffsetInDestBuffer,
@@ -475,7 +523,7 @@ public:
         while (numSamples > 0)
         {
             auto numThisTime = jmin (8192, numSamples);
-            auto numBytes = sizeof (float) * (size_t) numThisTime;
+            auto numBytes = (size_t) numThisTime * sizeof (float);
 
             audioDataBlock.ensureSize (numBytes * numChannels, false);
             auto* data = static_cast<float*> (audioDataBlock.getData());
@@ -493,6 +541,15 @@ public:
 
             if (status != noErr)
                 return false;
+
+            if (numFramesToRead == 0)
+                break;
+
+            if ((int) numFramesToRead < numThisTime)
+            {
+                numThisTime = (int) numFramesToRead;
+                numBytes    = (size_t) numThisTime * sizeof (float);
+            }
 
             for (int i = numDestChannels; --i >= 0;)
             {
@@ -554,11 +611,18 @@ private:
 
 //==============================================================================
 CoreAudioFormat::CoreAudioFormat()
-    : AudioFormat (coreAudioFormatName, findFileExtensionsForCoreAudioCodecs())
+    : AudioFormat (coreAudioFormatName, findFileExtensionsForCoreAudioCodecs()),
+      streamKind (StreamKind::kNone)
 {
 }
 
-CoreAudioFormat::~CoreAudioFormat() {}
+CoreAudioFormat::CoreAudioFormat (StreamKind kind)
+    : AudioFormat (coreAudioFormatName, findFileExtensionsForCoreAudioCodec (toAudioFileTypeID (kind))),
+      streamKind (kind)
+{
+}
+
+CoreAudioFormat::~CoreAudioFormat() = default;
 
 Array<int> CoreAudioFormat::getPossibleSampleRates()    { return {}; }
 Array<int> CoreAudioFormat::getPossibleBitDepths()      { return {}; }
@@ -570,7 +634,7 @@ bool CoreAudioFormat::canDoMono()       { return true; }
 AudioFormatReader* CoreAudioFormat::createReaderFor (InputStream* sourceStream,
                                                      bool deleteStreamIfOpeningFails)
 {
-    ScopedPointer<CoreAudioReader> r (new CoreAudioReader (sourceStream));
+    std::unique_ptr<CoreAudioReader> r (new CoreAudioReader (sourceStream, streamKind));
 
     if (r->ok)
         return r.release();
@@ -592,18 +656,31 @@ AudioFormatWriter* CoreAudioFormat::createWriterFor (OutputStream*,
     return nullptr;
 }
 
+
 //==============================================================================
-// Unit tests for Core Audio layout conversions
 //==============================================================================
 #if JUCE_UNIT_TESTS
 
 #define DEFINE_CHANNEL_LAYOUT_DFL_ENTRY(x) CoreAudioChannelLayoutTag { x, #x, AudioChannelSet() }
 #define DEFINE_CHANNEL_LAYOUT_TAG_ENTRY(x, y) CoreAudioChannelLayoutTag { x, #x, y }
 
-class CoreAudioLayoutsUnitTest  : public UnitTest
+class CoreAudioLayoutsUnitTest final : public UnitTest
 {
 public:
-    CoreAudioLayoutsUnitTest() : UnitTest ("Core Audio Layout <-> JUCE channel layout conversion", "Audio") {}
+    CoreAudioLayoutsUnitTest()
+        : UnitTest ("Core Audio Layout <-> JUCE channel layout conversion", UnitTestCategories::audio)
+    {}
+
+    // some ambisonic tags which are not explicitly defined
+    enum
+    {
+        kAudioChannelLayoutTag_HOA_ACN_SN3D_0Order = (190U<<16) | 1,
+        kAudioChannelLayoutTag_HOA_ACN_SN3D_1Order = (190U<<16) | 4,
+        kAudioChannelLayoutTag_HOA_ACN_SN3D_2Order = (190U<<16) | 9,
+        kAudioChannelLayoutTag_HOA_ACN_SN3D_3Order = (190U<<16) | 16,
+        kAudioChannelLayoutTag_HOA_ACN_SN3D_4Order = (190U<<16) | 25,
+        kAudioChannelLayoutTag_HOA_ACN_SN3D_5Order = (190U<<16) | 36
+    };
 
     void runTest() override
     {
@@ -619,7 +696,7 @@ public:
             {
                 auto labels = CoreAudioLayouts::fromCoreAudio (tagEntry.tag);
 
-                expect (! labels.isDiscreteLayout(), String ("Tag \"") + String (tagEntry.name) + "\" is not handled by JUCE");
+                expect (! labels.isDiscreteLayout(), "Tag \"" + String (tagEntry.name) + "\" is not handled by JUCE");
             }
         }
 
@@ -630,7 +707,7 @@ public:
             {
                 auto labels = CoreAudioLayouts::getSpeakerLayoutForCoreAudioTag (tagEntry.tag);
 
-                expect (labels.size() == (tagEntry.tag & 0xffff), String ("Tag \"") + String (tagEntry.name) + "\" has incorrect channel count");
+                expect (labels.size() == (tagEntry.tag & 0xffff), "Tag \"" + String (tagEntry.name) + "\" has incorrect channel count");
             }
         }
 
@@ -644,7 +721,7 @@ public:
 
                 for (int i = 0; i < (labels.size() - 1); ++i)
                     expect (labels.getReference (i) != labels.getReference (i + 1),
-                            String ("Tag \"") + String (tagEntry.name) + "\" has the same speaker twice");
+                            "Tag \"" + String (tagEntry.name) + "\" has the same speaker twice");
             }
         }
 
@@ -654,7 +731,7 @@ public:
             for (auto tagEntry : knownTags)
                 expect (AudioChannelSet::channelSetWithChannels (CoreAudioLayouts::getSpeakerLayoutForCoreAudioTag (tagEntry.tag))
                             == CoreAudioLayouts::fromCoreAudio (tagEntry.tag),
-                        String ("Tag \"") + String (tagEntry.name) + "\" is not converted consistantly by JUCE");
+                        "Tag \"" + String (tagEntry.name) + "\" is not converted consistently by JUCE");
         }
 
         {
@@ -666,7 +743,7 @@ public:
                     continue;
 
                 expect (CoreAudioLayouts::fromCoreAudio (tagEntry.tag) == tagEntry.equivalentChannelSet,
-                        String ("Documentation for tag \"") + String (tagEntry.name) + "\" is incorrect");
+                        "Documentation for tag \"" + String (tagEntry.name) + "\" is incorrect");
             }
         }
 
@@ -679,7 +756,7 @@ public:
                     continue;
 
                 expect (CoreAudioLayouts::toCoreAudio (tagEntry.equivalentChannelSet) == tagEntry.tag,
-                        String ("Incorrect reverse conversion for tag \"") + String (tagEntry.name) + "\"");
+                        "Incorrect reverse conversion for tag \"" + String (tagEntry.name) + "\"");
             }
         }
     }
@@ -703,7 +780,7 @@ private:
             DEFINE_CHANNEL_LAYOUT_DFL_ENTRY (kAudioChannelLayoutTag_MidSide),
             DEFINE_CHANNEL_LAYOUT_DFL_ENTRY (kAudioChannelLayoutTag_XY),
             DEFINE_CHANNEL_LAYOUT_DFL_ENTRY (kAudioChannelLayoutTag_Binaural),
-            DEFINE_CHANNEL_LAYOUT_TAG_ENTRY (kAudioChannelLayoutTag_Ambisonic_B_Format, AudioChannelSet::ambisonic()),
+            DEFINE_CHANNEL_LAYOUT_DFL_ENTRY (kAudioChannelLayoutTag_Ambisonic_B_Format),
             DEFINE_CHANNEL_LAYOUT_TAG_ENTRY (kAudioChannelLayoutTag_Quadraphonic, AudioChannelSet::quadraphonic()),
             DEFINE_CHANNEL_LAYOUT_TAG_ENTRY (kAudioChannelLayoutTag_Pentagonal, AudioChannelSet::pentagonal()),
             DEFINE_CHANNEL_LAYOUT_TAG_ENTRY (kAudioChannelLayoutTag_Hexagonal, AudioChannelSet::hexagonal()),
@@ -818,7 +895,14 @@ private:
             DEFINE_CHANNEL_LAYOUT_DFL_ENTRY (kAudioChannelLayoutTag_DTS_8_0_B),
             DEFINE_CHANNEL_LAYOUT_DFL_ENTRY (kAudioChannelLayoutTag_DTS_8_1_A),
             DEFINE_CHANNEL_LAYOUT_DFL_ENTRY (kAudioChannelLayoutTag_DTS_8_1_B),
-            DEFINE_CHANNEL_LAYOUT_DFL_ENTRY (kAudioChannelLayoutTag_DTS_6_1_D)
+            DEFINE_CHANNEL_LAYOUT_DFL_ENTRY (kAudioChannelLayoutTag_DTS_6_1_D),
+            DEFINE_CHANNEL_LAYOUT_DFL_ENTRY (kAudioChannelLayoutTag_DTS_6_1_D),
+            DEFINE_CHANNEL_LAYOUT_TAG_ENTRY (kAudioChannelLayoutTag_HOA_ACN_SN3D_0Order,  AudioChannelSet::ambisonic (0)),
+            DEFINE_CHANNEL_LAYOUT_TAG_ENTRY (kAudioChannelLayoutTag_HOA_ACN_SN3D_1Order,  AudioChannelSet::ambisonic (1)),
+            DEFINE_CHANNEL_LAYOUT_TAG_ENTRY (kAudioChannelLayoutTag_HOA_ACN_SN3D_2Order,  AudioChannelSet::ambisonic (2)),
+            DEFINE_CHANNEL_LAYOUT_TAG_ENTRY (kAudioChannelLayoutTag_HOA_ACN_SN3D_3Order, AudioChannelSet::ambisonic (3)),
+            DEFINE_CHANNEL_LAYOUT_TAG_ENTRY (kAudioChannelLayoutTag_HOA_ACN_SN3D_4Order, AudioChannelSet::ambisonic (4)),
+            DEFINE_CHANNEL_LAYOUT_TAG_ENTRY (kAudioChannelLayoutTag_HOA_ACN_SN3D_5Order, AudioChannelSet::ambisonic (5))
         };
         static Array<CoreAudioChannelLayoutTag> knownTags (tags, sizeof (tags) / sizeof (CoreAudioChannelLayoutTag));
 

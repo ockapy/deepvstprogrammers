@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -32,18 +31,18 @@ namespace juce
 #endif
 
 //==============================================================================
-PathFlatteningIterator::PathFlatteningIterator (const Path& path_,
-                                                const AffineTransform& transform_,
-                                                const float tolerance)
+PathFlatteningIterator::PathFlatteningIterator (const Path& pathToUse,
+                                                const AffineTransform& t,
+                                                float tolerance)
     : x2 (0),
       y2 (0),
       closesSubPath (false),
       subPathIndex (-1),
-      path (path_),
-      transform (transform_),
-      points (path_.data.elements),
+      path (pathToUse),
+      transform (t),
+      source (path.data.begin()),
       toleranceSquared (tolerance * tolerance),
-      isIdentityTransform (transform_.isIdentity())
+      isIdentityTransform (t.isIdentity())
 {
     stackPos = stackBase;
 }
@@ -55,7 +54,7 @@ PathFlatteningIterator::~PathFlatteningIterator()
 bool PathFlatteningIterator::isLastInSubpath() const noexcept
 {
     return stackPos == stackBase.get()
-             && (index >= path.numElements || isMarker (points[index], Path::moveMarker));
+             && (source == path.data.end() || isMarker (*source, Path::moveMarker));
 }
 
 bool PathFlatteningIterator::next()
@@ -72,32 +71,32 @@ bool PathFlatteningIterator::next()
     {
         float type;
 
-        if (stackPos == stackBase)
+        if (stackPos == stackBase.get())
         {
-            if (index >= path.numElements)
+            if (source == path.data.end())
                 return false;
 
-            type = points [index++];
+            type = *source++;
 
             if (! isMarker (type, Path::closeSubPathMarker))
             {
-                x2 = points [index++];
-                y2 = points [index++];
+                x2 = *source++;
+                y2 = *source++;
 
                 if (isMarker (type, Path::quadMarker))
                 {
-                    x3 = points [index++];
-                    y3 = points [index++];
+                    x3 = *source++;
+                    y3 = *source++;
 
                     if (! isIdentityTransform)
                         transform.transformPoints (x2, y2, x3, y3);
                 }
                 else if (isMarker (type, Path::cubicMarker))
                 {
-                    x3 = points [index++];
-                    y3 = points [index++];
-                    x4 = points [index++];
-                    y4 = points [index++];
+                    x3 = *source++;
+                    y3 = *source++;
+                    x4 = *source++;
+                    y4 = *source++;
 
                     if (! isIdentityTransform)
                         transform.transformPoints (x2, y2, x3, y3, x4, y4);
@@ -137,11 +136,11 @@ bool PathFlatteningIterator::next()
         {
             ++subPathIndex;
 
-            closesSubPath = (stackPos == stackBase)
-                             && (index < path.numElements)
-                             && (points [index] == Path::closeSubPathMarker)
-                             && x2 == subPathCloseX
-                             && y2 == subPathCloseY;
+            closesSubPath = stackPos == stackBase.get()
+                             && source != path.data.end()
+                             && isMarker (*source, Path::closeSubPathMarker)
+                             && approximatelyEqual (x2, subPathCloseX)
+                             && approximatelyEqual (y2, subPathCloseY);
 
             return true;
         }
@@ -167,7 +166,11 @@ bool PathFlatteningIterator::next()
             auto errorX = m3x - x2;
             auto errorY = m3y - y2;
 
-            if (errorX * errorX + errorY * errorY > toleranceSquared)
+            auto outsideTolerance = errorX * errorX + errorY * errorY > toleranceSquared;
+            auto canBeSubdivided = (! approximatelyEqual (m3x, m1x) && ! approximatelyEqual (m3x, m2x))
+                                || (! approximatelyEqual (m3y, m1y) && ! approximatelyEqual (m3y, m2y));
+
+            if (outsideTolerance && canBeSubdivided)
             {
                 *stackPos++ = y3;
                 *stackPos++ = x3;
@@ -221,8 +224,14 @@ bool PathFlatteningIterator::next()
             auto error2X = m5x - x3;
             auto error2Y = m5y - y3;
 
-            if (error1X * error1X + error1Y * error1Y > toleranceSquared
-                 || error2X * error2X + error2Y * error2Y > toleranceSquared)
+            auto outsideTolerance = error1X * error1X + error1Y * error1Y > toleranceSquared
+                                 || error2X * error2X + error2Y * error2Y > toleranceSquared;
+            auto canBeSubdivided = (! approximatelyEqual (m4x, m1x) && ! approximatelyEqual (m4x, m2x))
+                                || (! approximatelyEqual (m4y, m1y) && ! approximatelyEqual (m4y, m2y))
+                                || (! approximatelyEqual (m5x, m3x) && ! approximatelyEqual (m5x, m2x))
+                                || (! approximatelyEqual (m5y, m3y) && ! approximatelyEqual (m5y, m2y));
+
+            if (outsideTolerance && canBeSubdivided)
             {
                 *stackPos++ = y4;
                 *stackPos++ = x4;
@@ -257,7 +266,7 @@ bool PathFlatteningIterator::next()
         }
         else if (isMarker (type, Path::closeSubPathMarker))
         {
-            if (x2 != subPathCloseX || y2 != subPathCloseY)
+            if (! approximatelyEqual (x2, subPathCloseX) || ! approximatelyEqual (y2, subPathCloseY))
             {
                 x1 = x2;
                 y1 = y2;

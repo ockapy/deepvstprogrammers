@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -32,6 +31,11 @@ class ComponentAnimator::AnimationTask
 public:
     AnimationTask (Component* c) noexcept  : component (c) {}
 
+    ~AnimationTask()
+    {
+        proxy.deleteAndZero();
+    }
+
     void reset (const Rectangle<int>& finalBounds,
                 float finalAlpha,
                 int millisecondsToSpendMoving,
@@ -45,7 +49,7 @@ public:
         destAlpha = finalAlpha;
 
         isMoving = (finalBounds != component->getBounds());
-        isChangingAlpha = (finalAlpha != component->getAlpha());
+        isChangingAlpha = ! approximatelyEqual (finalAlpha, component->getAlpha());
 
         left    = component->getX();
         top     = component->getY();
@@ -58,18 +62,18 @@ public:
         midSpeed = invTotalDistance;
         endSpeed = jmax (0.0, endSpd * invTotalDistance);
 
+        proxy.deleteAndZero();
+
         if (useProxyComponent)
             proxy = new ProxyComponent (*component);
-        else
-            proxy = nullptr;
 
         component->setVisible (! useProxyComponent);
     }
 
     bool useTimeslice (const int elapsed)
     {
-        if (auto* c = proxy != nullptr ? static_cast<Component*> (proxy)
-                                       : static_cast<Component*> (component))
+        if (auto* c = proxy != nullptr ? proxy.getComponent()
+                                       : component.get())
         {
             msElapsed += elapsed;
             double newProgress = msElapsed / (double) msTotal;
@@ -142,7 +146,7 @@ public:
     }
 
     //==============================================================================
-    struct ProxyComponent  : public Component
+    struct ProxyComponent final : public Component
     {
         ProxyComponent (Component& c)
         {
@@ -159,8 +163,8 @@ public:
             else
                 jassertfalse; // seem to be trying to animate a component that's not visible..
 
-            auto scale = (float) Desktop::getInstance().getDisplays()
-                                  .getDisplayContaining (getScreenBounds().getCentre()).scale;
+            auto scale = (float) Desktop::getInstance().getDisplays().getDisplayForRect (getScreenBounds())->scale
+                           * Component::getApproximateScaleFactorForComponent (&c);
 
             image = c.createComponentSnapshot (c.getLocalBounds(), false, scale);
 
@@ -171,18 +175,23 @@ public:
         void paint (Graphics& g) override
         {
             g.setOpacity (1.0f);
-            g.drawImageTransformed (image, AffineTransform::scale (getWidth()  / (float) image.getWidth(),
-                                                                   getHeight() / (float) image.getHeight()), false);
+            g.drawImageTransformed (image, AffineTransform::scale ((float) getWidth()  / (float) jmax (1, image.getWidth()),
+                                                                   (float) getHeight() / (float) jmax (1, image.getHeight())), false);
         }
 
     private:
+        std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override
+        {
+            return createIgnoredAccessibilityHandler (*this);
+        }
+
         Image image;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ProxyComponent)
     };
 
     WeakReference<Component> component;
-    ScopedPointer<Component> proxy;
+    Component::SafePointer<Component> proxy;
 
     Rectangle<int> destination;
     double destAlpha;
@@ -212,8 +221,8 @@ ComponentAnimator::~ComponentAnimator() {}
 ComponentAnimator::AnimationTask* ComponentAnimator::findTaskFor (Component* const component) const noexcept
 {
     for (int i = tasks.size(); --i >= 0;)
-        if (component == tasks.getUnchecked(i)->component.get())
-            return tasks.getUnchecked(i);
+        if (component == tasks.getUnchecked (i)->component.get())
+            return tasks.getUnchecked (i);
 
     return nullptr;
 }
@@ -264,7 +273,7 @@ void ComponentAnimator::fadeOut (Component* component, int millisecondsToTake)
 
 void ComponentAnimator::fadeIn (Component* component, int millisecondsToTake)
 {
-    if (component != nullptr && ! (component->isVisible() && component->getAlpha() == 1.0f))
+    if (component != nullptr && ! (component->isVisible() && approximatelyEqual (component->getAlpha(), 1.0f)))
     {
         component->setAlpha (0.0f);
         component->setVisible (true);
@@ -278,7 +287,7 @@ void ComponentAnimator::cancelAllAnimations (const bool moveComponentsToTheirFin
     {
         if (moveComponentsToTheirFinalPositions)
             for (int i = tasks.size(); --i >= 0;)
-                tasks.getUnchecked(i)->moveToFinalDestination();
+                tasks.getUnchecked (i)->moveToFinalDestination();
 
         tasks.clear();
         sendChangeMessage();

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -47,6 +47,8 @@ namespace juce
     @endcode
 
     @see GenericScopedUnlock, CriticalSection, SpinLock, ScopedLock, ScopedUnlock
+
+    @tags{Core}
 */
 template <class LockType>
 class GenericScopedLock
@@ -116,6 +118,8 @@ private:
     @endcode
 
     @see GenericScopedLock, CriticalSection, ScopedLock, ScopedUnlock
+
+    @tags{Core}
 */
 template <class LockType>
 class GenericScopedUnlock
@@ -186,6 +190,8 @@ private:
     @endcode
 
     @see CriticalSection::tryEnter, GenericScopedLock, GenericScopedUnlock
+
+    @tags{Core}
 */
 template <class LockType>
 class GenericScopedTryLock

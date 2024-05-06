@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -27,6 +27,7 @@ namespace juce
 /**
     A class to hold a resizable block of raw data.
 
+    @tags{Core}
 */
 class JUCE_API  MemoryBlock
 {
@@ -40,7 +41,7 @@ public:
         @param initialSize          the size of block to create
         @param initialiseToZero     whether to clear the memory or just leave it uninitialised
     */
-    MemoryBlock (const size_t initialSize,
+    MemoryBlock (size_t initialSize,
                  bool initialiseToZero = false);
 
     /** Creates a copy of another memory block. */
@@ -87,21 +88,41 @@ public:
         Note that the pointer returned will probably become invalid when the
         block is resized.
     */
-    void* getData() const noexcept                                  { return data; }
+    void* getData() noexcept                                        { return data; }
+
+    /** Returns a void pointer to the data.
+
+        Note that the pointer returned will probably become invalid when the
+        block is resized.
+    */
+    const void* getData() const noexcept                            { return data; }
 
     /** Returns a byte from the memory block.
         This returns a reference, so you can also use it to set a byte.
     */
     template <typename Type>
-    char& operator[] (const Type offset) const noexcept             { return data [offset]; }
+    char& operator[] (const Type offset) noexcept                   { return data [offset]; }
+
+    /** Returns a byte from the memory block. */
+    template <typename Type>
+    const char& operator[] (const Type offset) const noexcept       { return data [offset]; }
 
     /** Returns an iterator for the data. */
-    char* begin() const noexcept                                    { return data; }
+    char* begin() noexcept                                          { return data; }
+
+    /** Returns an iterator for the data. */
+    const char* begin() const noexcept                              { return data; }
 
     /** Returns an end-iterator for the data. */
-    char* end() const noexcept                                      { return begin() + getSize(); }
+    char* end() noexcept                                            { return begin() + getSize(); }
+
+    /** Returns an end-iterator for the data. */
+    const char* end() const noexcept                                { return begin() + getSize(); }
 
     //==============================================================================
+    /** Returns true if the memory block has zero size. */
+    bool isEmpty() const noexcept                                   { return getSize() == 0; }
+
     /** Returns the block's current allocated size, in bytes. */
     size_t getSize() const noexcept                                 { return size; }
 
@@ -117,7 +138,7 @@ public:
                                             uninitialised
         @see ensureSize
     */
-    void setSize (const size_t newSize,
+    void setSize (size_t newSize,
                   bool initialiseNewSpaceToZero = false);
 
     /** Increases the block's size only if it's smaller than a given size.
@@ -129,7 +150,7 @@ public:
                                             uninitialised
         @see setSize
     */
-    void ensureSize (const size_t minimumSize,
+    void ensureSize (size_t minimumSize,
                      bool initialiseNewSpaceToZero = false);
 
     /** Frees all the blocks data, setting its size to 0. */
@@ -149,7 +170,7 @@ public:
     /** Resizes this block to the given size and fills its contents from the supplied buffer.
         The data pointer must not be null.
     */
-    void replaceWith (const void* data, size_t numBytes);
+    void replaceAll (const void* data, size_t numBytes);
 
     /** Inserts some data into the block.
         The dataToInsert pointer must not be null. This block's size will be increased accordingly.
@@ -247,10 +268,19 @@ public:
     */
     bool fromBase64Encoding  (StringRef encodedString);
 
+    //==============================================================================
+   #ifndef DOXYGEN
+    [[deprecated ("Use the replaceAll method instead, which will also replace the data when numBytes == 0.")]]
+    void replaceWith (const void* srcData, size_t numBytes)
+    {
+        if (numBytes > 0)
+            replaceAll (srcData, numBytes);
+    }
+   #endif
 
 private:
     //==============================================================================
-    typedef HeapBlock<char, true> HeapBlockType;
+    using HeapBlockType = HeapBlock<char, true>;
     HeapBlockType data;
     size_t size = 0;
 

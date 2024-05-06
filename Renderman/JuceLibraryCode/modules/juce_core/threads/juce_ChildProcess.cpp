@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -54,6 +54,8 @@ bool ChildProcess::waitForProcessToFinish (const int timeoutMs) const
     {
         if (! isRunning())
             return true;
+
+        Thread::sleep (2);
     }
     while (timeoutMs < 0 || Time::getMillisecondCounter() < timeoutTime);
 
@@ -66,8 +68,8 @@ String ChildProcess::readAllProcessOutput()
 
     for (;;)
     {
-        char buffer [512];
-        const int num = readProcessOutput (buffer, sizeof (buffer));
+        char buffer[512];
+        auto num = readProcessOutput (buffer, sizeof (buffer));
 
         if (num <= 0)
             break;
@@ -78,19 +80,23 @@ String ChildProcess::readAllProcessOutput()
     return result.toString();
 }
 
+
+//==============================================================================
 //==============================================================================
 #if JUCE_UNIT_TESTS
 
-class ChildProcessTests  : public UnitTest
+class ChildProcessTests final : public UnitTest
 {
 public:
-    ChildProcessTests() : UnitTest ("ChildProcess", "Threads") {}
+    ChildProcessTests()
+        : UnitTest ("ChildProcess", UnitTestCategories::threads)
+    {}
 
     void runTest() override
     {
         beginTest ("Child Processes");
 
-      #if JUCE_WINDOWS || JUCE_MAC || JUCE_LINUX
+      #if JUCE_WINDOWS || JUCE_MAC || JUCE_LINUX || JUCE_BSD
         ChildProcess p;
 
        #if JUCE_WINDOWS
@@ -99,8 +105,8 @@ public:
         expect (p.start ("ls /"));
        #endif
 
-        //String output (p.readAllProcessOutput());
-        //expect (output.isNotEmpty());
+        auto output = p.readAllProcessOutput();
+        expect (output.isNotEmpty());
       #endif
     }
 };

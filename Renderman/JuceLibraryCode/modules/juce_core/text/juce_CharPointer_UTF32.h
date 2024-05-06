@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -28,21 +28,20 @@ namespace juce
     Wraps a pointer to a null-terminated UTF-32 character string, and provides
     various methods to operate on the data.
     @see CharPointer_UTF8, CharPointer_UTF16
+
+    @tags{Core}
 */
 class CharPointer_UTF32  final
 {
 public:
-    typedef juce_wchar CharType;
+    using CharType = juce_wchar;
 
     inline explicit CharPointer_UTF32 (const CharType* rawPointer) noexcept
         : data (const_cast<CharType*> (rawPointer))
     {
     }
 
-    inline CharPointer_UTF32 (const CharPointer_UTF32& other) noexcept
-        : data (other.data)
-    {
-    }
+    inline CharPointer_UTF32 (const CharPointer_UTF32& other) = default;
 
     inline CharPointer_UTF32 operator= (CharPointer_UTF32 other) noexcept
     {
@@ -187,7 +186,7 @@ public:
     /** Returns the number of bytes that would be needed to represent the given
         unicode character in this encoding format.
     */
-    static inline size_t getBytesRequiredFor (juce_wchar) noexcept
+    static size_t getBytesRequiredFor (juce_wchar) noexcept
     {
         return sizeof (CharType);
     }
@@ -341,6 +340,9 @@ public:
 
     /** Returns the first non-whitespace character in the string. */
     CharPointer_UTF32 findEndOfWhitespace() const noexcept   { return CharacterFunctions::findEndOfWhitespace (*this); }
+
+    /** Move this pointer to the first non-whitespace character in the string. */
+    void incrementToEndOfWhitespace() noexcept               { CharacterFunctions::incrementToEndOfWhitespace (*this); }
 
     /** Returns true if the given unicode character can be represented in this encoding. */
     static bool canRepresent (juce_wchar character) noexcept

@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -27,6 +26,14 @@
 namespace juce
 {
 
+static constexpr bool isNonBreakingSpace (const juce_wchar c)
+{
+    return c == 0x00a0
+        || c == 0x2007
+        || c == 0x202f
+        || c == 0x2060;
+}
+
 PositionedGlyph::PositionedGlyph() noexcept
     : character (0), glyph (0), x (0), y (0), w (0), whitespace (false)
 {
@@ -39,29 +46,7 @@ PositionedGlyph::PositionedGlyph (const Font& font_, juce_wchar character_, int 
 {
 }
 
-PositionedGlyph::PositionedGlyph (PositionedGlyph&& other) noexcept
-    : font (static_cast<Font&&> (other.font)),
-      character (other.character), glyph (other.glyph),
-      x (other.x), y (other.y), w (other.w), whitespace (other.whitespace)
-{
-}
-
-PositionedGlyph& PositionedGlyph::operator= (PositionedGlyph&& other) noexcept
-{
-    font = static_cast<Font&&> (other.font);
-    character = other.character;
-    glyph = other.glyph;
-    x = other.x;
-    y = other.y;
-    w = other.w;
-    whitespace = other.whitespace;
-
-    return *this;
-}
-
-PositionedGlyph::~PositionedGlyph() {}
-
-static inline void drawGlyphWithFont (Graphics& g, int glyph, const Font& font, AffineTransform t)
+static void drawGlyphWithFont (Graphics& g, int glyph, const Font& font, AffineTransform t)
 {
     auto& context = g.getInternalContext();
     context.setFont (font);
@@ -84,7 +69,7 @@ void PositionedGlyph::createPath (Path& path) const
 {
     if (! isWhitespace())
     {
-        if (auto* t = font.getTypeface())
+        if (auto t = font.getTypefacePtr())
         {
             Path p;
             t->getOutlineForGlyph (glyph, p);
@@ -99,7 +84,7 @@ bool PositionedGlyph::hitTest (float px, float py) const
 {
     if (getBounds().contains (px, py) && ! isWhitespace())
     {
-        if (auto* t = font.getTypeface())
+        if (auto t = font.getTypefacePtr())
         {
             Path p;
             t->getOutlineForGlyph (glyph, p);
@@ -128,27 +113,13 @@ GlyphArrangement::GlyphArrangement()
     glyphs.ensureStorageAllocated (128);
 }
 
-GlyphArrangement::GlyphArrangement (GlyphArrangement&& other)
-    : glyphs (static_cast<Array<PositionedGlyph>&&> (other.glyphs))
-{
-}
-
-GlyphArrangement& GlyphArrangement::operator= (GlyphArrangement&& other)
-{
-    glyphs = static_cast<Array<PositionedGlyph>&&> (other.glyphs);
-
-    return *this;
-}
-
-GlyphArrangement::~GlyphArrangement() {}
-
 //==============================================================================
 void GlyphArrangement::clear()
 {
     glyphs.clear();
 }
 
-PositionedGlyph& GlyphArrangement::getGlyph (int index) const noexcept
+PositionedGlyph& GlyphArrangement::getGlyph (int index) noexcept
 {
     return glyphs.getReference (index);
 }
@@ -203,10 +174,10 @@ void GlyphArrangement::addCurtailedLineOfText (const Font& font, const String& t
             }
 
             auto thisX = xOffsets.getUnchecked (i);
-            bool isWhitespace = t.isWhitespace();
+            auto isWhitespace = isNonBreakingSpace (*t) || t.isWhitespace();
 
             glyphs.add (PositionedGlyph (font, t.getAndAdvance(),
-                                         newGlyphs.getUnchecked(i),
+                                         newGlyphs.getUnchecked (i),
                                          xOffset + thisX, yOffset,
                                          nextX - thisX, isWhitespace));
         }
@@ -256,7 +227,8 @@ int GlyphArrangement::insertEllipsis (const Font& font, float maxXPos, int start
 
 void GlyphArrangement::addJustifiedText (const Font& font, const String& text,
                                          float x, float y, float maxLineWidth,
-                                         Justification horizontalLayout)
+                                         Justification horizontalLayout,
+                                         float leading)
 {
     auto lineStartIndex = glyphs.size();
     addLineOfText (font, text, x, y);
@@ -267,8 +239,8 @@ void GlyphArrangement::addJustifiedText (const Font& font, const String& text,
     {
         int i = lineStartIndex;
 
-        if (glyphs.getReference(i).getCharacter() != '\n'
-              && glyphs.getReference(i).getCharacter() != '\r')
+        if (glyphs.getReference (i).getCharacter() != '\n'
+              && glyphs.getReference (i).getCharacter() != '\r')
             ++i;
 
         auto lineMaxX = glyphs.getReference (lineStartIndex).getLeft() + maxLineWidth;
@@ -284,7 +256,7 @@ void GlyphArrangement::addJustifiedText (const Font& font, const String& text,
                 ++i;
 
                 if (c == '\r' && i < glyphs.size()
-                     && glyphs.getReference(i).getCharacter() == '\n')
+                     && glyphs.getReference (i).getCharacter() == '\n')
                     ++i;
 
                 break;
@@ -331,7 +303,7 @@ void GlyphArrangement::addJustifiedText (const Font& font, const String& text,
 
         lineStartIndex = i;
 
-        y += font.getHeight();
+        y += font.getHeight() + leading;
     }
 }
 
@@ -340,7 +312,7 @@ void GlyphArrangement::addFittedText (const Font& f, const String& text,
                                       Justification layout, int maximumLines,
                                       float minimumHorizontalScale)
 {
-    if (minimumHorizontalScale == 0.0f)
+    if (approximatelyEqual (minimumHorizontalScale, 0.0f))
         minimumHorizontalScale = Font::getDefaultMinimumHorizontalScaleFactor();
 
     // doesn't make much sense if this is outside a sensible range of 0.5 to 1.0
@@ -391,7 +363,7 @@ void GlyphArrangement::moveRangeOfGlyphs (int startIndex, int num, const float d
 {
     jassert (startIndex >= 0);
 
-    if (dx != 0.0f || dy != 0.0f)
+    if (! approximatelyEqual (dx, 0.0f) || ! approximatelyEqual (dy, 0.0f))
     {
         if (num < 0 || startIndex + num > glyphs.size())
             num = glyphs.size() - startIndex;
@@ -519,7 +491,7 @@ void GlyphArrangement::justifyGlyphs (int startIndex, int num,
             {
                 auto glyphY = glyphs.getReference (startIndex + i).getBaselineY();
 
-                if (glyphY != baseY)
+                if (! approximatelyEqual (glyphY, baseY))
                 {
                     spreadOutLine (startIndex + lineStart, i - lineStart, width);
 
@@ -577,9 +549,9 @@ void GlyphArrangement::spreadOutLine (int start, int num, float targetWidth)
     }
 }
 
-static inline bool isBreakableGlyph (const PositionedGlyph& g) noexcept
+static bool isBreakableGlyph (const PositionedGlyph& g) noexcept
 {
-    return g.isWhitespace() || g.getCharacter() == '-';
+    return ! isNonBreakingSpace (g.getCharacter()) && (g.isWhitespace() || g.getCharacter() == '-');
 }
 
 void GlyphArrangement::splitLines (const String& text, Font font, int startIndex,
@@ -615,7 +587,7 @@ void GlyphArrangement::splitLines (const String& text, Font font, int startIndex
         // allowing for unevenness in the lengths due to differently sized words.
         const float lineLengthUnevennessAllowance = 80.0f;
 
-        if (numLines > (lineWidth + lineLengthUnevennessAllowance) / width || newFontHeight < 8.0f)
+        if ((float) numLines > (lineWidth + lineLengthUnevennessAllowance) / width || newFontHeight < 8.0f)
             break;
     }
 
@@ -625,7 +597,7 @@ void GlyphArrangement::splitLines (const String& text, Font font, int startIndex
     int lineIndex = 0;
     auto lineY = y;
     auto widthPerLine = jmin (width / minimumHorizontalScale,
-                              lineWidth / numLines);
+                              lineWidth / (float) numLines);
 
     while (lineY < y + height)
     {
@@ -723,7 +695,7 @@ void GlyphArrangement::drawGlyphUnderline (const Graphics& g, const PositionedGl
     auto lineThickness = (pg.font.getDescent()) * 0.3f;
     auto nextX = pg.x + pg.w;
 
-    if (i < glyphs.size() - 1 && glyphs.getReference (i + 1).y == pg.y)
+    if (i < glyphs.size() - 1 && approximatelyEqual (glyphs.getReference (i + 1).y, pg.y))
         nextX = glyphs.getReference (i + 1).x;
 
     Path p;
@@ -744,7 +716,7 @@ void GlyphArrangement::draw (const Graphics& g, AffineTransform transform) const
 
     for (int i = 0; i < glyphs.size(); ++i)
     {
-        auto& pg = glyphs.getReference(i);
+        auto& pg = glyphs.getReference (i);
 
         if (pg.font.isUnderlined())
             drawGlyphUnderline (g, pg, i, transform);

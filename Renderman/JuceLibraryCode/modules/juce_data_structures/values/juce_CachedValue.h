@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -52,6 +51,8 @@ namespace juce
     out-of-the-box, but if you want to use more complex custom types, you may need to implement
     some template specialisations of VariantConverter which this class uses to convert between
     the type and the ValueTree's internal var.
+
+    @tags{DataStructures}
 */
 template <typename Type>
 class CachedValue   : private ValueTree::Listener
@@ -104,24 +105,27 @@ public:
     Type get() const noexcept                        { return cachedValue; }
 
     /** Dereference operator. Provides direct access to the property.  */
-    Type& operator*() noexcept                       { return cachedValue; }
+    const Type& operator*() const noexcept           { return cachedValue; }
 
     /** Dereference operator. Provides direct access to members of the property
         if it is of object type.
     */
-    Type* operator->() noexcept                      { return &cachedValue; }
+    const Type* operator->() const noexcept          { return &cachedValue; }
 
     /** Returns true if the current value of the property (or the fallback value)
         is equal to other.
     */
     template <typename OtherType>
-    bool operator== (const OtherType& other) const   { return cachedValue == other; }
+    bool operator== (const OtherType& other) const
+    {
+        return cachedValue == other;
+    }
 
     /** Returns true if the current value of the property (or the fallback value)
         is not equal to other.
      */
     template <typename OtherType>
-    bool operator!= (const OtherType& other) const   { return cachedValue != other; }
+    bool operator!= (const OtherType& other) const   { return ! operator== (other); }
 
     //==============================================================================
     /** Returns the current property as a Value object. */
@@ -179,11 +183,14 @@ public:
     /** Returns the property ID of the referenced property. */
     const Identifier& getPropertyID() const noexcept        { return targetProperty; }
 
+    /** Returns the UndoManager that is being used. */
+    UndoManager* getUndoManager() noexcept                  { return undoManager; }
+
 private:
     //==============================================================================
     ValueTree targetTree;
     Identifier targetProperty;
-    UndoManager* undoManager;
+    UndoManager* undoManager = nullptr;
     Type defaultValue;
     Type cachedValue;
 
@@ -192,18 +199,16 @@ private:
     Type getTypedValue() const;
 
     void valueTreePropertyChanged (ValueTree& changedTree, const Identifier& changedProperty) override;
-    void valueTreeChildAdded (ValueTree&, ValueTree&) override {}
-    void valueTreeChildRemoved (ValueTree&, ValueTree&, int) override {}
-    void valueTreeChildOrderChanged (ValueTree&, int, int) override {}
-    void valueTreeParentChanged (ValueTree&) override {}
 
+    //==============================================================================
+    JUCE_DECLARE_WEAK_REFERENCEABLE (CachedValue)
     JUCE_DECLARE_NON_COPYABLE (CachedValue)
 };
 
 
 //==============================================================================
 template <typename Type>
-inline CachedValue<Type>::CachedValue()  : undoManager (nullptr) {}
+inline CachedValue<Type>::CachedValue() = default;
 
 template <typename Type>
 inline CachedValue<Type>::CachedValue (ValueTree& v, const Identifier& i, UndoManager* um)
@@ -243,7 +248,7 @@ inline CachedValue<Type>& CachedValue<Type>::operator= (const Type& newValue)
 template <typename Type>
 inline void CachedValue<Type>::setValue (const Type& newValue, UndoManager* undoManagerToUse)
 {
-    if (cachedValue != newValue || isUsingDefault())
+    if (! exactlyEqual (cachedValue, newValue) || isUsingDefault())
     {
         cachedValue = newValue;
         targetTree.setProperty (targetProperty, VariantConverter<Type>::toVar (newValue), undoManagerToUse);

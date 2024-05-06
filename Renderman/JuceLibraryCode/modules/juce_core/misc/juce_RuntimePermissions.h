@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -46,7 +46,7 @@ namespace juce
     New code:
 
         RuntimePermissions::request (
-            RuntimePermissions::audioRecording,
+            RuntimePermissions::recordAudio,
             [this] (bool wasGranted)
             {
                  if (! wasGranted)
@@ -58,6 +58,8 @@ namespace juce
                  audioDeviceManager.initialise (2, 2, nullptr, true, String(), nullptr);
             }
         );
+
+    @tags{Core}
 */
 class JUCE_API  RuntimePermissions
 {
@@ -81,12 +83,30 @@ public:
         readExternalStorage = 3,
 
         /** Permission to write to external storage such as SD cards */
-        writeExternalStorage = 4
+        writeExternalStorage = 4,
+
+        /** Permission to use camera */
+        camera = 5,
+
+        /** Permission to read audio files that your app didn't create.
+            Has the same effect as readExternalStorage on iOS and Android versions before 33.
+        */
+        readMediaAudio = 6,
+
+        /** Permission to read image files that your app didn't create.
+            Has the same effect as readExternalStorage on iOS and Android versions before 33.
+        */
+        readMediaImages = 7,
+
+        /** Permission to read video files that your app didn't create.
+            Has the same effect as readExternalStorage on iOS and Android versions before 33.
+        */
+        readMediaVideo = 8
     };
 
     //==============================================================================
     /** Function type of runtime permission request callbacks. */
-    typedef std::function<void (bool)> Callback;
+    using Callback = std::function<void (bool)>;
 
     //==============================================================================
     /** Call this method to request a runtime permission.

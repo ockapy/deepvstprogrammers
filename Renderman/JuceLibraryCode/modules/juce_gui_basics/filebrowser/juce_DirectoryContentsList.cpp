@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -28,9 +27,7 @@ namespace juce
 {
 
 DirectoryContentsList::DirectoryContentsList (const FileFilter* f, TimeSliceThread& t)
-   : fileFilter (f), thread (t),
-     fileTypeFlags (File::ignoreHiddenFiles | File::findFiles),
-     shouldStop (true)
+    : fileFilter (f), thread (t)
 {
 }
 
@@ -55,7 +52,7 @@ void DirectoryContentsList::setDirectory (const File& directory,
                                           const bool includeDirectories,
                                           const bool includeFiles)
 {
-    jassert (includeDirectories || includeFiles); // you have to speciify at least one of these!
+    jassert (includeDirectories || includeFiles); // you have to specify at least one of these!
 
     if (directory != root)
     {
@@ -67,9 +64,13 @@ void DirectoryContentsList::setDirectory (const File& directory,
         fileTypeFlags &= ~(File::findDirectories | File::findFiles);
     }
 
-    int newFlags = fileTypeFlags;
-    if (includeDirectories) newFlags |= File::findDirectories;  else newFlags &= ~File::findDirectories;
-    if (includeFiles)       newFlags |= File::findFiles;        else newFlags &= ~File::findFiles;
+    auto newFlags = fileTypeFlags;
+
+    if (includeDirectories) newFlags |=  File::findDirectories;
+    else                    newFlags &= ~File::findDirectories;
+
+    if (includeFiles)       newFlags |=  File::findFiles;
+    else                    newFlags &= ~File::findFiles;
 
     setTypeFlags (newFlags);
 }
@@ -87,14 +88,14 @@ void DirectoryContentsList::stopSearching()
 {
     shouldStop = true;
     thread.removeTimeSliceClient (this);
-    fileFindHandle = nullptr;
+    isSearching = false;
 }
 
 void DirectoryContentsList::clear()
 {
     stopSearching();
 
-    if (files.size() > 0)
+    if (! files.isEmpty())
     {
         files.clear();
         changed();
@@ -103,12 +104,15 @@ void DirectoryContentsList::clear()
 
 void DirectoryContentsList::refresh()
 {
-    clear();
+    stopSearching();
+    wasEmpty = files.isEmpty();
+    files.clear();
 
     if (root.isDirectory())
     {
-        fileFindHandle = new DirectoryIterator (root, false, "*", fileTypeFlags);
+        fileFindHandle = std::make_unique<RangedDirectoryIterator> (root, false, "*", fileTypeFlags);
         shouldStop = false;
+        isSearching = true;
         thread.addTimeSliceClient (this);
     }
 }
@@ -120,6 +124,12 @@ void DirectoryContentsList::setFileFilter (const FileFilter* newFileFilter)
 }
 
 //==============================================================================
+int DirectoryContentsList::getNumFiles() const noexcept
+{
+    const ScopedLock sl (fileListLock);
+    return files.size();
+}
+
 bool DirectoryContentsList::getFileInfo (const int index, FileInfo& result) const
 {
     const ScopedLock sl (fileListLock);
@@ -148,7 +158,7 @@ bool DirectoryContentsList::contains (const File& targetFile) const
     const ScopedLock sl (fileListLock);
 
     for (int i = files.size(); --i >= 0;)
-        if (root.getChildFile (files.getUnchecked(i)->filename) == targetFile)
+        if (root.getChildFile (files.getUnchecked (i)->filename) == targetFile)
             return true;
 
     return false;
@@ -156,7 +166,7 @@ bool DirectoryContentsList::contains (const File& targetFile) const
 
 bool DirectoryContentsList::isStillLoading() const
 {
-    return fileFindHandle != nullptr;
+    return isSearching;
 }
 
 void DirectoryContentsList::changed()
@@ -167,7 +177,7 @@ void DirectoryContentsList::changed()
 //==============================================================================
 int DirectoryContentsList::useTimeSlice()
 {
-    const uint32 startTime = Time::getApproximateMillisecondCounter();
+    auto startTime = Time::getApproximateMillisecondCounter();
     bool hasChanged = false;
 
     for (int i = 100; --i >= 0;)
@@ -192,43 +202,28 @@ int DirectoryContentsList::useTimeSlice()
 
 bool DirectoryContentsList::checkNextFile (bool& hasChanged)
 {
-    if (fileFindHandle != nullptr)
+    if (fileFindHandle == nullptr)
+        return false;
+
+    if (*fileFindHandle == RangedDirectoryIterator())
     {
-        bool fileFoundIsDir, isHidden, isReadOnly;
-        int64 fileSize;
-        Time modTime, creationTime;
-
-        if (fileFindHandle->next (&fileFoundIsDir, &isHidden, &fileSize,
-                                  &modTime, &creationTime, &isReadOnly))
-        {
-            if (addFile (fileFindHandle->getFile(), fileFoundIsDir,
-                         fileSize, modTime, creationTime, isReadOnly))
-            {
-                hasChanged = true;
-            }
-
-            return true;
-        }
-
         fileFindHandle = nullptr;
+        isSearching = false;
+        hasChanged = true;
+        return false;
     }
 
-    return false;
+    const auto entry = *(*fileFindHandle)++;
+
+    hasChanged |= addFile (entry.getFile(),
+                           entry.isDirectory(),
+                           entry.getFileSize(),
+                           entry.getModificationTime(),
+                           entry.getCreationTime(),
+                           entry.isReadOnly());
+
+    return true;
 }
-
-struct FileInfoComparator
-{
-    static int compareElements (const DirectoryContentsList::FileInfo* const first,
-                                const DirectoryContentsList::FileInfo* const second)
-    {
-       #if JUCE_WINDOWS
-        if (first->isDirectory != second->isDirectory)
-            return first->isDirectory ? -1 : 1;
-       #endif
-
-        return first->filename.compareNatural (second->filename);
-    }
-};
 
 bool DirectoryContentsList::addFile (const File& file, const bool isDir,
                                      const int64 fileSize,
@@ -241,21 +236,31 @@ bool DirectoryContentsList::addFile (const File& file, const bool isDir,
          || ((! isDir) && fileFilter->isFileSuitable (file))
          || (isDir && fileFilter->isDirectorySuitable (file)))
     {
-        ScopedPointer<FileInfo> info (new FileInfo());
+        auto info = std::make_unique<FileInfo>();
 
-        info->filename = file.getFileName();
-        info->fileSize = fileSize;
+        info->filename         = file.getFileName();
+        info->fileSize         = fileSize;
         info->modificationTime = modTime;
-        info->creationTime = creationTime;
-        info->isDirectory = isDir;
-        info->isReadOnly = isReadOnly;
+        info->creationTime     = creationTime;
+        info->isDirectory      = isDir;
+        info->isReadOnly       = isReadOnly;
 
         for (int i = files.size(); --i >= 0;)
-            if (files.getUnchecked(i)->filename == info->filename)
+            if (files.getUnchecked (i)->filename == info->filename)
                 return false;
 
-        FileInfoComparator comp;
-        files.addSorted (comp, info.release());
+        files.add (std::move (info));
+
+        std::sort (files.begin(), files.end(), [] (const FileInfo* a, const FileInfo* b)
+        {
+           #if JUCE_WINDOWS
+            if (a->isDirectory != b->isDirectory)
+                return a->isDirectory;
+           #endif
+
+            return a->filename.compareNatural (b->filename) < 0;
+        });
+
         return true;
     }
 

@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -29,10 +28,6 @@ namespace juce
 
 RecentlyOpenedFilesList::RecentlyOpenedFilesList()
     : maxNumberOfItems (10)
-{
-}
-
-RecentlyOpenedFilesList::~RecentlyOpenedFilesList()
 {
 }
 
@@ -75,7 +70,7 @@ void RecentlyOpenedFilesList::removeFile (const File& file)
 void RecentlyOpenedFilesList::removeNonExistentFiles()
 {
     for (int i = getNumFiles(); --i >= 0;)
-        if (! getFile(i).exists())
+        if (! getFile (i).exists())
             files.remove (i);
 }
 
@@ -90,7 +85,7 @@ int RecentlyOpenedFilesList::createPopupMenuItems (PopupMenu& menuToAddTo,
 
     for (int i = 0; i < getNumFiles(); ++i)
     {
-        const File f (getFile(i));
+        const File f (getFile (i));
 
         if ((! dontAddNonExistentFiles) || f.exists())
         {
@@ -137,15 +132,48 @@ void RecentlyOpenedFilesList::restoreFromString (const String& stringifiedVersio
 
 
 //==============================================================================
-void RecentlyOpenedFilesList::registerRecentFileNatively (const File& file)
+void RecentlyOpenedFilesList::registerRecentFileNatively ([[maybe_unused]] const File& file)
 {
    #if JUCE_MAC
     JUCE_AUTORELEASEPOOL
     {
         [[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL: createNSURLFromFile (file)];
     }
-   #else
-    ignoreUnused (file);
+   #endif
+}
+
+void RecentlyOpenedFilesList::forgetRecentFileNatively ([[maybe_unused]] const File& file)
+{
+   #if JUCE_MAC
+    JUCE_AUTORELEASEPOOL
+    {
+        // for some reason, OSX doesn't provide a method to just remove a single file
+        // from the recent list, so we clear them all and add them back excluding
+        // the specified file
+
+        auto sharedDocController = [NSDocumentController sharedDocumentController];
+        auto recentDocumentURLs  = [sharedDocController recentDocumentURLs];
+
+        [sharedDocController clearRecentDocuments: nil];
+
+        auto* nsFile = createNSURLFromFile (file);
+
+        auto reverseEnumerator = [recentDocumentURLs reverseObjectEnumerator];
+
+        for (NSURL* url : reverseEnumerator)
+            if (! [url isEqual:nsFile])
+                [sharedDocController noteNewRecentDocumentURL:url];
+    }
+   #endif
+}
+
+void RecentlyOpenedFilesList::clearRecentFilesNatively()
+{
+   #if JUCE_MAC
+    JUCE_AUTORELEASEPOOL
+    {
+        [[NSDocumentController sharedDocumentController] clearRecentDocuments: nil];
+    }
    #endif
 }
 

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -27,7 +27,8 @@ MPESynthesiser::MPESynthesiser()
 {
 }
 
-MPESynthesiser::MPESynthesiser (MPEInstrument* mpeInstrument)  : MPESynthesiserBase (mpeInstrument)
+MPESynthesiser::MPESynthesiser (MPEInstrument& mpeInstrument)
+    : MPESynthesiserBase (mpeInstrument)
 {
 }
 
@@ -39,13 +40,16 @@ MPESynthesiser::~MPESynthesiser()
 void MPESynthesiser::startVoice (MPESynthesiserVoice* voice, MPENote noteToStart)
 {
     jassert (voice != nullptr);
+
     voice->currentlyPlayingNote = noteToStart;
+    voice->noteOnTime = lastNoteOnCounter++;
     voice->noteStarted();
 }
 
 void MPESynthesiser::stopVoice (MPESynthesiserVoice* voice, MPENote noteToStop, bool allowTailOff)
 {
     jassert (voice != nullptr);
+
     voice->currentlyPlayingNote = noteToStop;
     voice->noteStopped (allowTailOff);
 }
@@ -55,7 +59,7 @@ void MPESynthesiser::noteAdded (MPENote newNote)
 {
     const ScopedLock sl (voicesLock);
 
-    if (MPESynthesiserVoice* voice = findFreeVoice (newNote, shouldStealVoices))
+    if (auto* voice = findFreeVoice (newNote, shouldStealVoices))
         startVoice (voice, newNote);
 }
 
@@ -63,10 +67,8 @@ void MPESynthesiser::notePressureChanged (MPENote changedNote)
 {
     const ScopedLock sl (voicesLock);
 
-    for (int i = 0; i < voices.size(); ++i)
+    for (auto* voice : voices)
     {
-        MPESynthesiserVoice* voice = voices.getUnchecked (i);
-
         if (voice->isCurrentlyPlayingNote (changedNote))
         {
             voice->currentlyPlayingNote = changedNote;
@@ -79,10 +81,8 @@ void MPESynthesiser::notePitchbendChanged (MPENote changedNote)
 {
     const ScopedLock sl (voicesLock);
 
-    for (int i = 0; i < voices.size(); ++i)
+    for (auto* voice : voices)
     {
-        MPESynthesiserVoice* voice = voices.getUnchecked (i);
-
         if (voice->isCurrentlyPlayingNote (changedNote))
         {
             voice->currentlyPlayingNote = changedNote;
@@ -95,10 +95,8 @@ void MPESynthesiser::noteTimbreChanged (MPENote changedNote)
 {
     const ScopedLock sl (voicesLock);
 
-    for (int i = 0; i < voices.size(); ++i)
+    for (auto* voice : voices)
     {
-        MPESynthesiserVoice* voice = voices.getUnchecked (i);
-
         if (voice->isCurrentlyPlayingNote (changedNote))
         {
             voice->currentlyPlayingNote = changedNote;
@@ -111,10 +109,8 @@ void MPESynthesiser::noteKeyStateChanged (MPENote changedNote)
 {
     const ScopedLock sl (voicesLock);
 
-    for (int i = 0; i < voices.size(); ++i)
+    for (auto* voice : voices)
     {
-        MPESynthesiserVoice* voice = voices.getUnchecked (i);
-
         if (voice->isCurrentlyPlayingNote (changedNote))
         {
             voice->currentlyPlayingNote = changedNote;
@@ -127,11 +123,11 @@ void MPESynthesiser::noteReleased (MPENote finishedNote)
 {
     const ScopedLock sl (voicesLock);
 
-    for (int i = voices.size(); --i >= 0;)
+    for (auto i = voices.size(); --i >= 0;)
     {
-        MPESynthesiserVoice* const voice = voices.getUnchecked (i);
+        auto* voice = voices.getUnchecked (i);
 
-        if (voice->isCurrentlyPlayingNote(finishedNote))
+        if (voice->isCurrentlyPlayingNote (finishedNote))
             stopVoice (voice, finishedNote, true);
     }
 }
@@ -144,7 +140,7 @@ void MPESynthesiser::setCurrentPlaybackSampleRate (const double newRate)
 
     turnOffAllVoices (false);
 
-    for (int i = voices.size(); --i >= 0;)
+    for (auto i = voices.size(); --i >= 0;)
         voices.getUnchecked (i)->setCurrentSampleRate (newRate);
 }
 
@@ -162,10 +158,8 @@ MPESynthesiserVoice* MPESynthesiser::findFreeVoice (MPENote noteToFindVoiceFor, 
 {
     const ScopedLock sl (voicesLock);
 
-    for (int i = 0; i < voices.size(); ++i)
+    for (auto* voice : voices)
     {
-        MPESynthesiserVoice* const voice = voices.getUnchecked (i);
-
         if (! voice->isActive())
             return voice;
     }
@@ -175,14 +169,6 @@ MPESynthesiserVoice* MPESynthesiser::findFreeVoice (MPENote noteToFindVoiceFor, 
 
     return nullptr;
 }
-
-struct MPEVoiceAgeSorter
-{
-    static int compareElements (MPESynthesiserVoice* v1, MPESynthesiserVoice* v2) noexcept
-    {
-        return v1->wasStartedBefore (*v2) ? -1 : (v2->wasStartedBefore (*v1) ? 1 : 0);
-    }
-};
 
 MPESynthesiserVoice* MPESynthesiser::findVoiceToSteal (MPENote noteToStealVoiceFor) const
 {
@@ -198,21 +184,32 @@ MPESynthesiserVoice* MPESynthesiser::findVoiceToSteal (MPENote noteToStealVoiceF
     MPESynthesiserVoice* low = nullptr; // Lowest sounding note, might be sustained, but NOT in release phase
     MPESynthesiserVoice* top = nullptr; // Highest sounding note, might be sustained, but NOT in release phase
 
-    // this is a list of voices we can steal, sorted by how long they've been running
-    Array<MPESynthesiserVoice*> usableVoices;
-    usableVoices.ensureStorageAllocated (voices.size());
+    // All major OSes use double-locking so this will be lock- and wait-free as long as stealLock is not
+    // contended. This is always the case if you do not call findVoiceToSteal on multiple threads at
+    // the same time.
+    const ScopedLock sl (stealLock);
 
-    for (int i = 0; i < voices.size(); ++i)
+    // this is a list of voices we can steal, sorted by how long they've been running
+    usableVoicesToStealArray.clear();
+
+    for (auto* voice : voices)
     {
-        MPESynthesiserVoice* const voice = voices.getUnchecked (i);
         jassert (voice->isActive()); // We wouldn't be here otherwise
 
-        MPEVoiceAgeSorter sorter;
-        usableVoices.addSorted (sorter, voice);
+        usableVoicesToStealArray.add (voice);
+
+        // NB: Using a functor rather than a lambda here due to scare-stories about
+        // compilers generating code containing heap allocations..
+        struct Sorter
+        {
+            bool operator() (const MPESynthesiserVoice* a, const MPESynthesiserVoice* b) const noexcept { return a->noteOnTime < b->noteOnTime; }
+        };
+
+        std::sort (usableVoicesToStealArray.begin(), usableVoicesToStealArray.end(), Sorter());
 
         if (! voice->isPlayingButReleased()) // Don't protect released notes
         {
-            const int noteNumber = voice->getCurrentlyPlayingNote().initialNote;
+            auto noteNumber = voice->getCurrentlyPlayingNote().initialNote;
 
             if (low == nullptr || noteNumber < low->getCurrentlyPlayingNote().initialNote)
                 low = voice;
@@ -226,49 +223,29 @@ MPESynthesiserVoice* MPESynthesiser::findVoiceToSteal (MPENote noteToStealVoiceF
     if (top == low)
         top = nullptr;
 
-    const int numUsableVoices = usableVoices.size();
-
     // If we want to re-use the voice to trigger a new note,
     // then The oldest note that's playing the same note number is ideal.
     if (noteToStealVoiceFor.isValid())
-    {
-        for (int i = 0; i < numUsableVoices; ++i)
-        {
-            MPESynthesiserVoice* const voice = usableVoices.getUnchecked (i);
-
+        for (auto* voice : usableVoicesToStealArray)
             if (voice->getCurrentlyPlayingNote().initialNote == noteToStealVoiceFor.initialNote)
                 return voice;
-        }
-    }
 
     // Oldest voice that has been released (no finger on it and not held by sustain pedal)
-    for (int i = 0; i < numUsableVoices; ++i)
-    {
-        MPESynthesiserVoice* const voice = usableVoices.getUnchecked (i);
-
+    for (auto* voice : usableVoicesToStealArray)
         if (voice != low && voice != top && voice->isPlayingButReleased())
             return voice;
-    }
 
     // Oldest voice that doesn't have a finger on it:
-    for (int i = 0; i < numUsableVoices; ++i)
-    {
-        MPESynthesiserVoice* const voice = usableVoices.getUnchecked (i);
-
+    for (auto* voice : usableVoicesToStealArray)
         if (voice != low && voice != top
              && voice->getCurrentlyPlayingNote().keyState != MPENote::keyDown
              && voice->getCurrentlyPlayingNote().keyState != MPENote::keyDownAndSustained)
             return voice;
-    }
 
     // Oldest voice that isn't protected
-    for (int i = 0; i < numUsableVoices; ++i)
-    {
-        MPESynthesiserVoice* const voice = usableVoices.getUnchecked (i);
-
+    for (auto* voice : usableVoicesToStealArray)
         if (voice != low && voice != top)
             return voice;
-    }
 
     // We've only got "protected" voices now: lowest note takes priority
     jassert (low != nullptr);
@@ -283,9 +260,16 @@ MPESynthesiserVoice* MPESynthesiser::findVoiceToSteal (MPENote noteToStealVoiceF
 //==============================================================================
 void MPESynthesiser::addVoice (MPESynthesiserVoice* const newVoice)
 {
-    const ScopedLock sl (voicesLock);
-    newVoice->setCurrentSampleRate (getSampleRate());
-    voices.add (newVoice);
+    {
+        const ScopedLock sl (voicesLock);
+        newVoice->setCurrentSampleRate (getSampleRate());
+        voices.add (newVoice);
+    }
+
+    {
+        const ScopedLock sl (stealLock);
+        usableVoicesToStealArray.ensureStorageAllocated (voices.size() + 1);
+    }
 }
 
 void MPESynthesiser::clearVoices()
@@ -315,7 +299,7 @@ void MPESynthesiser::reduceNumVoices (const int newNumVoices)
 
     while (voices.size() > newNumVoices)
     {
-        if (MPESynthesiserVoice* voice = findFreeVoice (MPENote(), true))
+        if (auto* voice = findFreeVoice ({}, true))
             voices.removeObject (voice);
         else
             voices.remove (0); // if there's no voice to steal, kill the oldest voice
@@ -324,22 +308,31 @@ void MPESynthesiser::reduceNumVoices (const int newNumVoices)
 
 void MPESynthesiser::turnOffAllVoices (bool allowTailOff)
 {
-    // first turn off all voices (it's more efficient to do this immediately
-    // rather than to go through the MPEInstrument for this).
-    for (int i = voices.size(); --i >= 0;)
-        voices.getUnchecked (i)->noteStopped (allowTailOff);
+    {
+        const ScopedLock sl (voicesLock);
+
+        // first turn off all voices (it's more efficient to do this immediately
+        // rather than to go through the MPEInstrument for this).
+        for (auto* voice : voices)
+        {
+            voice->currentlyPlayingNote.noteOffVelocity = MPEValue::from7BitInt (64); // some reasonable number
+            voice->currentlyPlayingNote.keyState = MPENote::off;
+
+            voice->noteStopped (allowTailOff);
+        }
+    }
 
     // finally make sure the MPE Instrument also doesn't have any notes anymore.
-    instrument->releaseAllNotes();
+    instrument.releaseAllNotes();
 }
 
 //==============================================================================
 void MPESynthesiser::renderNextSubBlock (AudioBuffer<float>& buffer, int startSample, int numSamples)
 {
-    for (int i = voices.size(); --i >= 0;)
-    {
-        MPESynthesiserVoice* voice = voices.getUnchecked (i);
+    const ScopedLock sl (voicesLock);
 
+    for (auto* voice : voices)
+    {
         if (voice->isActive())
             voice->renderNextBlock (buffer, startSample, numSamples);
     }
@@ -347,10 +340,10 @@ void MPESynthesiser::renderNextSubBlock (AudioBuffer<float>& buffer, int startSa
 
 void MPESynthesiser::renderNextSubBlock (AudioBuffer<double>& buffer, int startSample, int numSamples)
 {
-    for (int i = voices.size(); --i >= 0;)
-    {
-        MPESynthesiserVoice* voice = voices.getUnchecked (i);
+    const ScopedLock sl (voicesLock);
 
+    for (auto* voice : voices)
+    {
         if (voice->isActive())
             voice->renderNextBlock (buffer, startSample, numSamples);
     }

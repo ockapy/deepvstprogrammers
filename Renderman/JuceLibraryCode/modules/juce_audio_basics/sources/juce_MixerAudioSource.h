@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -30,6 +30,8 @@ namespace juce
     Input sources can be added and removed while the mixer is running as long as their
     prepareToPlay() and releaseResources() methods are called before and after adding
     them to the mixer.
+
+    @tags{Audio}
 */
 class JUCE_API  MixerAudioSource  : public AudioSource
 {
@@ -39,7 +41,7 @@ public:
     MixerAudioSource();
 
     /** Destructor. */
-    ~MixerAudioSource();
+    ~MixerAudioSource() override;
 
     //==============================================================================
     /** Adds an input source to the mixer.
@@ -87,7 +89,7 @@ private:
     Array<AudioSource*> inputs;
     BigInteger inputsToDelete;
     CriticalSection lock;
-    AudioSampleBuffer tempBuffer;
+    AudioBuffer<float> tempBuffer;
     double currentSampleRate;
     int bufferSizeExpected;
 

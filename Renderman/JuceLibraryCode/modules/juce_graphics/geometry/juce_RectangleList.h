@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -36,16 +35,18 @@ namespace juce
     adjacent rectangles.
 
     @see Rectangle
+
+    @tags{Graphics}
 */
 template <typename ValueType>
 class RectangleList  final
 {
 public:
-    typedef Rectangle<ValueType> RectangleType;
+    using RectangleType = Rectangle<ValueType>;
 
     //==============================================================================
     /** Creates an empty RectangleList */
-    RectangleList() noexcept {}
+    RectangleList() = default;
 
     /** Creates a copy of another list */
     RectangleList (const RectangleList& other)  : rects (other.rects)
@@ -53,7 +54,7 @@ public:
     }
 
     /** Creates a list containing just one rectangle. */
-    RectangleList (const RectangleType& rect)
+    RectangleList (RectangleType rect)
     {
         addWithoutMerging (rect);
     }
@@ -67,14 +68,14 @@ public:
 
     /** Move constructor */
     RectangleList (RectangleList&& other) noexcept
-        : rects (static_cast<Array<RectangleType>&&> (other.rects))
+        : rects (std::move (other.rects))
     {
     }
 
     /** Move assignment operator */
     RectangleList& operator= (RectangleList&& other) noexcept
     {
-        rects = static_cast<Array<RectangleType>&&> (other.rects);
+        rects = std::move (other.rects);
         return *this;
     }
 
@@ -106,7 +107,7 @@ public:
         The rectangle can have any size and may be empty, but if it's floating point
         then it's expected to not contain any INF values.
     */
-    void add (const RectangleType& rect)
+    void add (RectangleType rect)
     {
         jassert (rect.isFinite()); // You must provide a valid rectangle to this method!
 
@@ -176,7 +177,7 @@ public:
         The rectangle can have any size and may be empty, but if it's floating point
         then it's expected to not contain any INF values.
     */
-    void addWithoutMerging (const RectangleType& rect)
+    void addWithoutMerging (RectangleType rect)
     {
         jassert (rect.isFinite()); // You must provide a valid rectangle to this method!
 
@@ -192,7 +193,7 @@ public:
     void add (const RectangleList& other)
     {
         for (auto& r : other)
-            add (*r);
+            add (r);
     }
 
     /** Removes a rectangular region from the list.
@@ -200,76 +201,108 @@ public:
         Any rectangles in the list which overlap this will be clipped and subdivided
         if necessary.
     */
-    void subtract (const RectangleType& rect)
+    void subtract (const RectangleType rect)
     {
         if (auto numRects = rects.size())
         {
-            auto x1 = rect.getX();
-            auto y1 = rect.getY();
-            auto x2 = x1 + rect.getWidth();
-            auto y2 = y1 + rect.getHeight();
+            const auto x1 = rect.getX();
+            const auto y1 = rect.getY();
+            const auto x2 = x1 + rect.getWidth();
+            const auto y2 = y1 + rect.getHeight();
 
             for (int i = numRects; --i >= 0;)
             {
                 auto& r = rects.getReference (i);
 
-                auto rx1 = r.getX();
-                auto ry1 = r.getY();
-                auto rx2 = rx1 + r.getWidth();
-                auto ry2 = ry1 + r.getHeight();
+                const auto rx1 = r.getX();
+                const auto ry1 = r.getY();
+                const auto rx2 = rx1 + r.getWidth();
+                const auto ry2 = ry1 + r.getHeight();
 
-                if (! (x2 <= rx1 || x1 >= rx2 || y2 <= ry1 || y1 >= ry2))
+                const auto isNotEqual = [&] (const RectangleType newRect)
                 {
-                    if (x1 > rx1 && x1 < rx2)
+                    // When subtracting tiny slices from relatively large rectangles, the
+                    // subtraction may have no effect (due to limited-precision floating point
+                    // maths) and the original rectangle may remain unchanged.
+                    // We check that any 'new' rectangle has different dimensions to the rectangle
+                    // being tested before adding it to the rects array.
+                    // Integer arithmetic is not susceptible to this problem, so there's no need
+                    // for this additional equality check when working with integral rectangles.
+                    if constexpr (std::is_floating_point_v<ValueType>)
                     {
-                        if (y1 <= ry1 && y2 >= ry2 && x2 >= rx2)
+                        return newRect != r;
+                    }
+                    else
+                    {
+                        ignoreUnused (newRect);
+                        return true;
+                    }
+                };
+
+                if (rx1 < x2 && x1 < rx2 && ry1 < y2 && y1 < ry2)
+                {
+                    if (rx1 < x1 && x1 < rx2)
+                    {
+                        if (y1 <= ry1 && ry2 <= y2 && rx2 <= x2)
                         {
                             r.setWidth (x1 - rx1);
                         }
                         else
                         {
-                            r.setX (x1);
-                            r.setWidth (rx2 - x1);
+                            if (const RectangleType newRect (rx1, ry1, x1 - rx1, ry2 - ry1); isNotEqual (newRect))
+                            {
+                                r.setX (x1);
+                                r.setWidth (rx2 - x1);
 
-                            rects.insert (++i, RectangleType (rx1, ry1, x1 - rx1,  ry2 - ry1));
-                            ++i;
+                                rects.insert (++i, newRect);
+                                ++i;
+                            }
                         }
                     }
-                    else if (x2 > rx1 && x2 < rx2)
+                    else if (rx1 < x2 && x2 < rx2)
                     {
                         r.setX (x2);
                         r.setWidth (rx2 - x2);
 
-                        if (y1 > ry1 || y2 < ry2 || x1 > rx1)
+                        if (ry1 < y1 || y2 < ry2 || rx1 < x1)
                         {
-                            rects.insert (++i, RectangleType (rx1, ry1, x2 - rx1,  ry2 - ry1));
-                            ++i;
+                            if (const RectangleType newRect (rx1, ry1, x2 - rx1, ry2 - ry1); isNotEqual (newRect))
+                            {
+                                rects.insert (++i, newRect);
+                                ++i;
+                            }
                         }
                     }
-                    else if (y1 > ry1 && y1 < ry2)
+                    else if (ry1 < y1 && y1 < ry2)
                     {
-                        if (x1 <= rx1 && x2 >= rx2 && y2 >= ry2)
+                        if (x1 <= rx1 && rx2 <= x2 && ry2 <= y2)
                         {
                             r.setHeight (y1 - ry1);
                         }
                         else
                         {
-                            r.setY (y1);
-                            r.setHeight (ry2 - y1);
+                            if (const RectangleType newRect (rx1, ry1, rx2 - rx1, y1 - ry1); isNotEqual (newRect))
+                            {
+                                r.setY (y1);
+                                r.setHeight (ry2 - y1);
 
-                            rects.insert (++i, RectangleType (rx1, ry1, rx2 - rx1, y1 - ry1));
-                            ++i;
+                                rects.insert (++i, newRect);
+                                ++i;
+                            }
                         }
                     }
-                    else if (y2 > ry1 && y2 < ry2)
+                    else if (ry1 < y2 && y2 < ry2)
                     {
                         r.setY (y2);
                         r.setHeight (ry2 - y2);
 
-                        if (x1 > rx1 || x2 < rx2 || y1 > ry1)
+                        if (rx1 < x1 || x2 < rx2 || ry1 < y1)
                         {
-                            rects.insert (++i, RectangleType (rx1, ry1, rx2 - rx1, y2 - ry1));
-                            ++i;
+                            if (const RectangleType newRect (rx1, ry1, rx2 - rx1, y2 - ry1); isNotEqual (newRect))
+                            {
+                                rects.insert (++i, newRect);
+                                ++i;
+                            }
                         }
                     }
                     else
@@ -310,7 +343,7 @@ public:
 
         @see getIntersectionWith
     */
-    bool clipTo (const RectangleType& rect)
+    bool clipTo (RectangleType rect)
     {
         jassert (rect.isFinite()); // You must provide a valid rectangle to this method!
 
@@ -377,14 +410,14 @@ public:
 
         @see clipTo
     */
-    bool getIntersectionWith (const RectangleType& rect, RectangleList& destRegion) const
+    bool getIntersectionWith (RectangleType rect, RectangleList& destRegion) const
     {
         jassert (rect.isFinite()); // You must provide a valid rectangle to this method!
 
         destRegion.clear();
 
         if (! rect.isEmpty())
-            for (auto& r : rects)
+            for (auto r : rects)
                 if (rect.intersectRectangle (r))
                     destRegion.rects.add (r);
 
@@ -428,7 +461,7 @@ public:
                     defined by this object
         @see intersectsRectangle, containsPoint
     */
-    bool containsRectangle (const RectangleType& rectangleToCheck) const
+    bool containsRectangle (RectangleType rectangleToCheck) const
     {
         if (rects.size() > 1)
         {
@@ -456,7 +489,7 @@ public:
                     defined by this object
         @see containsRectangle
     */
-    bool intersectsRectangle (const RectangleType& rectangleToCheck) const noexcept
+    bool intersectsRectangle (RectangleType rectangleToCheck) const noexcept
     {
         for (auto& r : rects)
             if (r.intersects (rectangleToCheck))
@@ -466,7 +499,6 @@ public:
     }
 
     /** Checks whether this region intersects any part of another one.
-
         @see intersectsRectangle
     */
     bool intersects (const RectangleList& other) const noexcept

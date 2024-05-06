@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -47,11 +46,11 @@ ResizableWindow::~ResizableWindow()
     // Don't delete or remove the resizer components yourself! They're managed by the
     // ResizableWindow, and you should leave them alone! You may have deleted them
     // accidentally by careless use of deleteAllChildren()..?
-    jassert (resizableCorner == nullptr || getIndexOfChildComponent (resizableCorner) >= 0);
-    jassert (resizableBorder == nullptr || getIndexOfChildComponent (resizableBorder) >= 0);
+    jassert (resizableCorner == nullptr || getIndexOfChildComponent (resizableCorner.get()) >= 0);
+    jassert (resizableBorder == nullptr || getIndexOfChildComponent (resizableBorder.get()) >= 0);
 
-    resizableCorner = nullptr;
-    resizableBorder = nullptr;
+    resizableCorner.reset();
+    resizableBorder.reset();
     clearContentComponent();
 
     // have you been adding your own components directly to this window..? tut tut tut.
@@ -63,12 +62,14 @@ void ResizableWindow::initialise (const bool shouldAddToDesktop)
 {
     /*
       ==========================================================================
-       In accordance with the terms of the JUCE 5 End-Use License Agreement, the
+
+       In accordance with the terms of the JUCE 7 End-Use License Agreement, the
        JUCE Code in SECTION A cannot be removed, changed or otherwise rendered
        ineffective unless you have a JUCE Indie or Pro license, or are using
        JUCE under the GPL v3 license.
 
-       End User License Agreement: www.juce.com/juce-5-licence
+       End User License Agreement: www.juce.com/juce-7-licence
+
       ==========================================================================
     */
 
@@ -113,8 +114,8 @@ void ResizableWindow::clearContentComponent()
 }
 
 void ResizableWindow::setContent (Component* newContentComponent,
-                                  const bool takeOwnership,
-                                  const bool resizeToFitWhenContentChangesSize)
+                                  bool takeOwnership,
+                                  bool resizeToFitWhenContentChangesSize)
 {
     if (newContentComponent != contentComponent)
     {
@@ -271,26 +272,30 @@ void ResizableWindow::setResizable (const bool shouldBeResizable,
     {
         if (useBottomRightCornerResizer)
         {
-            resizableBorder = nullptr;
+            resizableBorder.reset();
 
             if (resizableCorner == nullptr)
             {
-                Component::addChildComponent (resizableCorner = new ResizableCornerComponent (this, constrainer));
+                resizableCorner.reset (new ResizableCornerComponent (this, constrainer));
+                Component::addChildComponent (resizableCorner.get());
                 resizableCorner->setAlwaysOnTop (true);
             }
         }
         else
         {
-            resizableCorner = nullptr;
+            resizableCorner.reset();
 
             if (resizableBorder == nullptr)
-                Component::addChildComponent (resizableBorder = new ResizableBorderComponent (this, constrainer));
+            {
+                resizableBorder.reset (new ResizableBorderComponent (this, constrainer));
+                Component::addChildComponent (resizableBorder.get());
+            }
         }
     }
     else
     {
-        resizableCorner = nullptr;
-        resizableBorder = nullptr;
+        resizableCorner.reset();
+        resizableBorder.reset();
     }
 
     if (isUsingNativeTitleBar())
@@ -337,8 +342,8 @@ void ResizableWindow::setConstrainer (ComponentBoundsConstrainer* newConstrainer
         bool useBottomRightCornerResizer = resizableCorner != nullptr;
         bool shouldBeResizable = useBottomRightCornerResizer || resizableBorder != nullptr;
 
-        resizableCorner = nullptr;
-        resizableBorder = nullptr;
+        resizableCorner.reset();
+        resizableBorder.reset();
 
         setResizable (shouldBeResizable, useBottomRightCornerResizer);
         updatePeerConstrainer();
@@ -522,7 +527,21 @@ void ResizableWindow::parentSizeChanged()
 String ResizableWindow::getWindowStateAsString()
 {
     updateLastPosIfShowing();
-    return (isFullScreen() && ! isKioskMode() ? "fs " : "") + lastNonFullScreenPos.toString();
+    auto stateString = (isFullScreen() && ! isKioskMode() ? "fs " : "") + lastNonFullScreenPos.toString();
+
+   #if JUCE_LINUX
+    if (auto* peer = isOnDesktop() ? getPeer() : nullptr)
+    {
+        if (const auto optionalFrameSize = peer->getFrameSizeIfPresent())
+        {
+            const auto& frameSize = *optionalFrameSize;
+            stateString << " frame " << frameSize.getTop() << ' ' << frameSize.getLeft()
+                        << ' ' << frameSize.getBottom() << ' ' << frameSize.getRight();
+        }
+    }
+   #endif
+
+    return stateString;
 }
 
 bool ResizableWindow::restoreWindowStateFromString (const String& s)
@@ -535,7 +554,7 @@ bool ResizableWindow::restoreWindowStateFromString (const String& s)
     const bool fs = tokens[0].startsWithIgnoreCase ("fs");
     const int firstCoord = fs ? 1 : 0;
 
-    if (tokens.size() != firstCoord + 4)
+    if (tokens.size() < firstCoord + 4)
         return false;
 
     Rectangle<int> newPos (tokens[firstCoord].getIntValue(),
@@ -549,7 +568,30 @@ bool ResizableWindow::restoreWindowStateFromString (const String& s)
     auto* peer = isOnDesktop() ? getPeer() : nullptr;
 
     if (peer != nullptr)
-        peer->getFrameSize().addTo (newPos);
+    {
+        if (const auto frameSize = peer->getFrameSizeIfPresent())
+            frameSize->addTo (newPos);
+    }
+
+   #if JUCE_LINUX
+    if (peer == nullptr || ! peer->getFrameSizeIfPresent())
+    {
+        // We need to adjust for the frame size before we create a peer, as X11
+        // doesn't provide this information at construction time.
+        if (tokens[firstCoord + 4] == "frame" && tokens.size() == firstCoord + 9)
+        {
+            BorderSize<int> frame { tokens[firstCoord + 5].getIntValue(),
+                                    tokens[firstCoord + 6].getIntValue(),
+                                    tokens[firstCoord + 7].getIntValue(),
+                                    tokens[firstCoord + 8].getIntValue() };
+
+            newPos.setX (newPos.getX() - frame.getLeft());
+            newPos.setY (newPos.getY() - frame.getTop());
+
+            setBounds (newPos);
+        }
+    }
+   #endif
 
     {
         auto& desktop = Desktop::getInstance();
@@ -559,7 +601,7 @@ bool ResizableWindow::restoreWindowStateFromString (const String& s)
 
         if (onScreenArea.getWidth() * onScreenArea.getHeight() < 32 * 32)
         {
-            auto screen = desktop.getDisplays().getDisplayContaining (newPos.getCentre()).userArea;
+            auto screen = desktop.getDisplays().getDisplayForRect (newPos)->userArea;
 
             newPos.setSize (jmin (newPos.getWidth(),  screen.getWidth()),
                             jmin (newPos.getHeight(), screen.getHeight()));
@@ -571,7 +613,9 @@ bool ResizableWindow::restoreWindowStateFromString (const String& s)
 
     if (peer != nullptr)
     {
-        peer->getFrameSize().subtractFrom (newPos);
+        if (const auto frameSize = peer->getFrameSizeIfPresent())
+            frameSize->subtractFrom (newPos);
+
         peer->setNonFullScreenBounds (newPos);
     }
 

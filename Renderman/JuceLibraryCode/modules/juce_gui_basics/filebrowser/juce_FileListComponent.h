@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -38,10 +37,12 @@ namespace juce
     class and the FileBrowserListener class.
 
     @see DirectoryContentsList, FileTreeComponent
+
+    @tags{GUI}
 */
-class JUCE_API  FileListComponent  : public ListBox,
+class JUCE_API  FileListComponent  : private ListBoxModel,
+                                     public ListBox,
                                      public DirectoryContentsDisplayComponent,
-                                     private ListBoxModel,
                                      private ChangeListener
 {
 public:
@@ -50,7 +51,7 @@ public:
     FileListComponent (DirectoryContentsList& listToShow);
 
     /** Destructor. */
-    ~FileListComponent();
+    ~FileListComponent() override;
 
     //==============================================================================
     /** Returns the number of files the user has got selected.
@@ -76,11 +77,12 @@ public:
 
 private:
     //==============================================================================
-    File lastDirectory;
+    File lastDirectory, fileWaitingToBeSelected;
     class ItemComponent;
 
     void changeListenerCallback (ChangeBroadcaster*) override;
     int getNumRows() override;
+    String getNameForRow (int rowNumber) override;
     void paintListBoxItem (int, Graphics&, int, int, bool) override;
     Component* refreshComponentForRow (int rowNumber, bool isRowSelected, Component*) override;
     void selectedRowsChanged (int row) override;

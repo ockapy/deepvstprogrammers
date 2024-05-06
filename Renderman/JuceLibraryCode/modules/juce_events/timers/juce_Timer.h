@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -45,6 +45,8 @@ namespace juce
     internally, each one identified by an ID number.
 
     @see HighResolutionTimer, MultiTimer
+
+    @tags{Events}
 */
 class JUCE_API  Timer
 {
@@ -125,9 +127,9 @@ public:
 
 private:
     class TimerThread;
-    friend class TimerThread;
-    int timerCountdownMs = 0, timerPeriodMs = 0;
-    Timer* previousTimer = {}, *nextTimer = {};
+    size_t positionInQueue = (size_t) -1;
+    int timerPeriodMs = 0;
+    SharedResourcePointer<TimerThread> timerThread;
 
     Timer& operator= (const Timer&) = delete;
 };

@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -59,6 +58,8 @@ namespace juce
     be open or closed.
 
     @see PathFlatteningIterator, PathStrokeType, Graphics
+
+    @tags{Graphics}
 */
 class JUCE_API  Path  final
 {
@@ -96,7 +97,7 @@ public:
     Rectangle<float> getBounds() const noexcept;
 
     /** Returns the smallest rectangle that contains all points within the path
-        after it's been transformed with the given tranasform matrix.
+        after it's been transformed with the given transform matrix.
     */
     Rectangle<float> getBoundsTransformed (const AffineTransform& transform) const noexcept;
 
@@ -143,7 +144,7 @@ public:
         outside the path's boundary.
     */
     bool intersectsLine (Line<float> line,
-                         float tolerance = defaultToleranceForTesting);
+                         float tolerance = defaultToleranceForTesting) const;
 
     /** Cuts off parts of a line to keep the parts that are either inside or
         outside this path.
@@ -438,7 +439,7 @@ public:
                             draw a curve clockwise from the 9 o'clock position to the 3 o'clock position via
                             12 o'clock, you'd use 1.5*Pi and 2.5*Pi as the start and finish points.
         @param startAsNewSubPath    if true, the arc will begin a new subpath from its starting point; if false,
-                            it will be added to the current sub-path, continuing from the current postition
+                            it will be added to the current sub-path, continuing from the current position
 
         @see addCentredArc, arcTo, addPieSegment, addEllipse
     */
@@ -465,7 +466,7 @@ public:
                             draw a curve clockwise from the 9 o'clock position to the 3 o'clock position via
                             12 o'clock, you'd use 1.5*Pi and 2.5*Pi as the start and finish points.
         @param startAsNewSubPath    if true, the arc will begin a new subpath from its starting point; if false,
-                            it will be added to the current sub-path, continuing from the current postition
+                            it will be added to the current sub-path, continuing from the current position
 
         @see addArc, arcTo
     */
@@ -574,9 +575,9 @@ public:
     */
     void addBubble (Rectangle<float> bodyArea,
                     Rectangle<float> maximumArea,
-                    const Point<float> arrowTipPosition,
-                    const float cornerSize,
-                    const float arrowBaseWidth);
+                    Point<float> arrowTipPosition,
+                    float cornerSize,
+                    float arrowBaseWidth);
 
     /** Adds another path to this one.
 
@@ -651,7 +652,7 @@ public:
         @param preserveProportions  if true, it will fit the path into the space without altering its
                                     horizontal/vertical scale ratio; if false, it will distort the
                                     path to fill the specified ratio both horizontally and vertically
-        @param justificationType    if the proportions are preseved, the resultant path may be smaller
+        @param justificationType    if the proportions are preserved, the resultant path may be smaller
                                     than the available rectangle, so this describes how it should be
                                     positioned within the space.
         @returns                    an appropriate transformation
@@ -669,7 +670,7 @@ public:
         @param preserveProportions  if true, it will fit the path into the space without altering its
                                     horizontal/vertical scale ratio; if false, it will distort the
                                     path to fill the specified ratio both horizontally and vertically
-        @param justificationType    if the proportions are preseved, the resultant path may be smaller
+        @param justificationType    if the proportions are preserved, the resultant path may be smaller
                                     than the available rectangle, so this describes how it should be
                                     positioned within the space.
         @returns                    an appropriate transformation
@@ -753,7 +754,7 @@ public:
         //==============================================================================
     private:
         const Path& path;
-        size_t index = 0;
+        const float* index;
 
         JUCE_DECLARE_NON_COPYABLE (Iterator)
     };
@@ -803,8 +804,7 @@ private:
     friend class Path::Iterator;
     friend class EdgeTable;
 
-    ArrayAllocationBase<float, DummyCriticalSection> data;
-    size_t numElements = 0;
+    Array<float> data;
 
     struct PathBounds
     {
@@ -813,7 +813,13 @@ private:
         void reset() noexcept;
         void reset (float, float) noexcept;
         void extend (float, float) noexcept;
-        void extend (float, float, float, float) noexcept;
+
+        template <typename... Coords>
+        void extend (float x, float y, Coords... coords) noexcept
+        {
+            extend (x, y);
+            extend (coords...);
+        }
 
         float pathXMin = 0, pathXMax = 0, pathYMin = 0, pathYMax = 0;
     };
@@ -821,11 +827,11 @@ private:
     PathBounds bounds;
     bool useNonZeroWinding = true;
 
-    static const float lineMarker;
-    static const float moveMarker;
-    static const float quadMarker;
-    static const float cubicMarker;
-    static const float closeSubPathMarker;
+    static constexpr float lineMarker           = 100001.0f;
+    static constexpr float moveMarker           = 100002.0f;
+    static constexpr float quadMarker           = 100003.0f;
+    static constexpr float cubicMarker          = 100004.0f;
+    static constexpr float closeSubPathMarker   = 100005.0f;
 
     JUCE_LEAK_DETECTOR (Path)
 };

@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -40,7 +39,7 @@ public:
         // context. You'll need to create this object in one of the OpenGLContext's callbacks.
         jassert (OpenGLHelpers::isContextActive());
 
-       #if JUCE_WINDOWS || JUCE_LINUX
+       #if JUCE_WINDOWS || JUCE_LINUX || JUCE_BSD
         if (context.extensions.glGenFramebuffers == nullptr)
             return;
        #endif
@@ -58,7 +57,7 @@ public:
         glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         JUCE_CHECK_OPENGL_ERROR
 
-        glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         JUCE_CHECK_OPENGL_ERROR
 
         context.extensions.glFramebufferTexture2D (GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureID, 0);
@@ -70,11 +69,11 @@ public:
             jassert (context.extensions.glIsRenderbuffer (depthOrStencilBuffer));
 
             context.extensions.glRenderbufferStorage (GL_RENDERBUFFER,
-                                      (wantsDepthBuffer && wantsStencilBuffer) ? GL_DEPTH24_STENCIL8
+                                      (wantsDepthBuffer && wantsStencilBuffer) ? (GLenum) GL_DEPTH24_STENCIL8
                                                                               #if JUCE_OPENGL_ES
-                                                                               : GL_DEPTH_COMPONENT16,
+                                                                               : (GLenum) GL_DEPTH_COMPONENT16,
                                                                               #else
-                                                                               : GL_DEPTH_COMPONENT,
+                                                                               : (GLenum) GL_DEPTH_COMPONENT,
                                                                               #endif
                                       width, height);
 
@@ -180,11 +179,11 @@ bool OpenGLFrameBuffer::initialise (OpenGLContext& context, int width, int heigh
 {
     jassert (context.isActive()); // The context must be active when creating a framebuffer!
 
-    pimpl = nullptr;
-    pimpl = new Pimpl (context, width, height, false, false);
+    pimpl.reset();
+    pimpl.reset (new Pimpl (context, width, height, false, false));
 
     if (! pimpl->createdOk())
-        pimpl = nullptr;
+        pimpl.reset();
 
     return pimpl != nullptr;
 }
@@ -202,11 +201,11 @@ bool OpenGLFrameBuffer::initialise (OpenGLContext& context, const Image& image)
 
 bool OpenGLFrameBuffer::initialise (OpenGLFrameBuffer& other)
 {
-    const Pimpl* const p = other.pimpl;
+    auto* p = other.pimpl.get();
 
     if (p == nullptr)
     {
-        pimpl = nullptr;
+        pimpl.reset();
         return true;
     }
 
@@ -217,7 +216,9 @@ bool OpenGLFrameBuffer::initialise (OpenGLFrameBuffer& other)
         pimpl->bind();
 
        #if ! JUCE_ANDROID
-        glEnable (GL_TEXTURE_2D);
+        if (! pimpl->context.isCoreProfile())
+            glEnable (GL_TEXTURE_2D);
+
         clearGLError();
        #endif
         glBindTexture (GL_TEXTURE_2D, p->textureID);
@@ -234,16 +235,16 @@ bool OpenGLFrameBuffer::initialise (OpenGLFrameBuffer& other)
 
 void OpenGLFrameBuffer::release()
 {
-    pimpl = nullptr;
-    savedState = nullptr;
+    pimpl.reset();
+    savedState.reset();
 }
 
 void OpenGLFrameBuffer::saveAndRelease()
 {
     if (pimpl != nullptr)
     {
-        savedState = new SavedState (*this, pimpl->width, pimpl->height);
-        pimpl = nullptr;
+        savedState.reset (new SavedState (*this, pimpl->width, pimpl->height));
+        pimpl.reset();
     }
 }
 
@@ -251,12 +252,13 @@ bool OpenGLFrameBuffer::reloadSavedCopy (OpenGLContext& context)
 {
     if (savedState != nullptr)
     {
-        ScopedPointer<SavedState> state (savedState);
+        std::unique_ptr<SavedState> state;
+        std::swap (state, savedState);
 
         if (state->restore (context, *this))
             return true;
 
-        savedState = state;
+        std::swap (state, savedState);
     }
 
     return false;
@@ -286,7 +288,7 @@ GLuint OpenGLFrameBuffer::getFrameBufferID() const noexcept
 
 GLuint OpenGLFrameBuffer::getCurrentFrameBufferTarget() noexcept
 {
-    GLint fb;
+    GLint fb = {};
     glGetIntegerv (GL_FRAMEBUFFER_BINDING, &fb);
     return (GLuint) fb;
 }

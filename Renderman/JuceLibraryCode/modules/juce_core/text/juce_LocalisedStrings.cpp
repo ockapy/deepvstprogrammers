@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -44,12 +44,8 @@ LocalisedStrings& LocalisedStrings::operator= (const LocalisedStrings& other)
     languageName = other.languageName;
     countryCodes = other.countryCodes;
     translations = other.translations;
-    fallback = createCopyIfNotNull (other.fallback.get());
+    fallback.reset (createCopyIfNotNull (other.fallback.get()));
     return *this;
-}
-
-LocalisedStrings::~LocalisedStrings()
-{
 }
 
 //==============================================================================
@@ -81,7 +77,7 @@ namespace
     {
         LeakAvoidanceTrick()
         {
-            const ScopedPointer<LocalisedStrings> dummy (new LocalisedStrings (String(), false));
+            const std::unique_ptr<LocalisedStrings> dummy (new LocalisedStrings (String(), false));
         }
     };
 
@@ -89,7 +85,7 @@ namespace
    #endif
 
     SpinLock currentMappingsLock;
-    ScopedPointer<LocalisedStrings> currentMappings;
+    std::unique_ptr<LocalisedStrings> currentMappings;
 
     static int findCloseQuote (const String& text, int startPos)
     {
@@ -171,19 +167,19 @@ void LocalisedStrings::addStrings (const LocalisedStrings& other)
 
 void LocalisedStrings::setFallback (LocalisedStrings* f)
 {
-    fallback = f;
+    fallback.reset (f);
 }
 
 //==============================================================================
 void LocalisedStrings::setCurrentMappings (LocalisedStrings* newTranslations)
 {
     const SpinLock::ScopedLockType sl (currentMappingsLock);
-    currentMappings = newTranslations;
+    currentMappings.reset (newTranslations);
 }
 
 LocalisedStrings* LocalisedStrings::getCurrentMappings()
 {
-    return currentMappings;
+    return currentMappings.get();
 }
 
 String LocalisedStrings::translateWithCurrentMappings (const String& text)  { return juce::translate (text); }
