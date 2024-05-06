@@ -1,7 +1,8 @@
-/Renderman/Builds
 /app/utils/__pycache__
 /.vscode
 /app/data/dataset
 /app/utils/normalisers
 app/models/hill_climber/__pycache__
 app/stats
+
+/Renderman/Builds/VisualStudio2022/x64
