@@ -36,12 +36,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
  
 
-# # Set environment variables
-# ENV CPLUS_INCLUDE_PATH="/usr/include/python3.9:${CPLUS_INCLUDE_PATH}"
-# ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
+# Set environment variables
+ENV CPLUS_INCLUDE_PATH="/usr/include/python3.9:${CPLUS_INCLUDE_PATH}"
+ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 
-# # Compile RenderMan
-# RUN cd /app/Renderman/Builds/LinuxMakefile && \
-#     make && \
-#     mv build/librenderman.so /app/Program/utils
+# Compile RenderMan
+RUN cd /app/Renderman/Builds/LinuxMakefile && \
+    make && \
+    mv build/librenderman.so /app/Program/utils
 
