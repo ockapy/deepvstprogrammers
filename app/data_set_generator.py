@@ -20,14 +20,16 @@ def clear():
     for f in audio_files:
         os.remove(f)
 
-algorithm_number = 18
+algorithm_number = 1
 # Works:  1-15
 # Bleh:  16-19
 # Works: 20-32
 alg = (1.0 / 32.0) * float(algorithm_number - 1) + 0.001
-overriden_parameters = [(0, 1.0), (1, 0.0), (2, 1.0), (3, 0.0), (4, alg), (6,0.0),
-                        (7,0.0), (8,0.0), (9,0.0), (10,0.), (11,0.0), (12,0.0),
-                        (26, 1.),  (30, 0.),  (48, 1.),  (52, 0.), 
+overriden_parameters = [(0, 1.0), (1, 0.0), (2, 1.0), (3, 0.0), (4, alg), (6,0.0), # DEFAULT CONFIG
+                        (7,0.0), (8,0.0), (9,0.0), (10,0.), (11,0.0), (12,0.0), # LFO PARAMETERS
+                        (15,1.),(16,1.),(17,1.), (18,1.),(19,0.5),(20,0.5),(21,0.5),(22,0.5), # PITCH EG RATE AND LEVEL
+                        (29,1.),(51,1.),(73,1.),(95,1.),(117,1.),(139,1.), # EG LEVELS
+                        (26, 1.),  (30, 0.),  (48, 1.),  (52, 0.),  # REMOVE CONTINUOUS NOTES
                         (70, 1.),  (74, 0.),  (92, 1.),  (96, 0.), 
                         (114, 1.), (118, 0.), (136, 1.), (140, 0.)]
 
@@ -35,12 +37,12 @@ overriden_parameters = [(0, 1.0), (1, 0.0), (2, 1.0), (3, 0.0), (4, alg), (6,0.0
 
 # overriden_parameters.extend(other_params)
 
-desired_features = [0,1,6]
+desired_features = []
 desired_features.extend([i for i in range(len(desired_features), 21)])
-extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
+extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=5.0,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
-                                   render_length_secs=0.7,
+                                   render_length_secs=6.0,
                                    pickle_path=dir+"/utils/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
@@ -57,12 +59,12 @@ extractor.load_plugin(path)
 if extractor.need_to_fit_normalisers():
 
     print("No normalisers found, fitting new ones.")
-    extractor.fit_normalisers(500)
+    extractor.fit_normalisers(100)
 
 
 # Get training and testing batch.
-test_size = 1
-train_size = 1
+test_size = 50
+train_size = 50
 
 operator_folder = dir+"/data/dataset/"
 
