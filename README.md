@@ -8,47 +8,17 @@ This code was developed by Leon Fedden under supervision by Matthew Yee-King.
 
 This fork try to improve and update the original project.  
 
-
-
----
+---  
 # RenderMan Compilation
-
-To compile RenderMan, we need to make some adjustments to the program.
-
 ## Windows
-
-If you are on Windows, you can open the solution (*located in Builds/VisualStudio2019/RenderMan.sln*) using Visual Studio 2019 or newer versions.
-
 ### Prerequisites
 
-For it to work properly, you will need to install Windows SDK 8.1, which you can find here:  
-[https://developer.microsoft.com/en-us/windows/downloads/sdk-archive/](https://developer.microsoft.com/en-us/windows/downloads/sdk-archive/#:~:text=Downloads-,Windows%208.1%20SDK,-Released%20in%20October)
-
-Next, you need to install the Boost C++ library. You can follow the instructions on their website to install it on Windows:  
+You need to install the Boost C++ library. You can follow the instructions on their website to install it on Windows:  
 [https://www.boost.org/doc/libs/1_85_0/more/getting_started/windows.html](https://www.boost.org/doc/libs/1_85_0/more/getting_started/windows.html)
 
-Once Boost is installed, for the solution to compile, we need to change some build settings in Visual Studio.
+Then compile boost using the following commands in boost directory:
+```./bootstrap.bat vc143```  
+```./b2 --build-type=complete --prefix=C:\Boost install```  
 
 ### Visual Studio Build
-
-First things first, open RenderMan.sln with Visual Studio. Inside Visual Studio, right-click on the solution and go to Properties.
-
-Click on VC++ Repositories, then on the right panel, click on Library Repositories and select Modify.  
-Adjust the path to the libraries of Python to fit your Python version.  
-If not present, add the path to Boost libraries (*should be C:\Boost\lib*).  
-Then confirm the changes.
-
-Next, in Properties, click the C/C++ tab and General tab.  
-Here, you need to change the include directories to add:  
-- *\*Path_to_Boost*\*\include\boost-*\*version_number\**
-- *\*Path_to_Python*\*\include  
-
-Finally, because Boost doesn't want to mix static and dynamic libraries, you also need to change the preprocessor instructions.  
-You can find this in the C/C++ tab and Preprocessor -> Preprocessor Definition.  
-You just need to add one line at the end:  
-- BOOST_PYTHON_STATIC_LIB
-
----
-
-Now you should be able to build the solution. Once it's done, go to the build files, copy renderman.dll, paste it in the app/utils folder, and rename it librenderman.pyd.  
-In /app directory you will find a quick jupyter notebook guide on how to use RenderMan.
+You can now open the solution (*located in Renderman/Builds*) using latest Visual Studio version and build the project.
