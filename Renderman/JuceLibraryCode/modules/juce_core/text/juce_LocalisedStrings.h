@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -50,21 +50,23 @@ namespace juce
     "goodbye" = "au revoir"
     @endcode
 
-    If the strings need to contain a quote character, they can use '\"' instead, and
+    If the strings need to contain a quote character, they can use \" instead, and
     if the first non-whitespace character on a line isn't a quote, then it's ignored,
     (you can use this to add comments).
 
     Note that this is a singleton class, so don't create or destroy the object directly.
-    There's also a TRANS(text) macro defined to make it easy to use the this.
+    There's also a TRANS (text) macro defined to make it easy to use the this.
 
-    E.g. @code
-    printSomething (TRANS("hello"));
+    @code
+    printSomething (TRANS ("hello"));
     @endcode
 
-    This macro is used in the Juce classes themselves, so your application has a chance to
-    intercept and translate any internal Juce text strings that might be shown. (You can easily
-    get a list of all the messages by searching for the TRANS() macro in the Juce source
+    This macro is used in the JUCE classes themselves, so your application has a chance to
+    intercept and translate any internal JUCE text strings that might be shown. (You can easily
+    get a list of all the messages by searching for the TRANS() macro in the JUCE source
     code).
+
+    @tags{Core}
 */
 class JUCE_API  LocalisedStrings
 {
@@ -88,7 +90,7 @@ public:
     LocalisedStrings& operator= (const LocalisedStrings&);
 
     /** Destructor. */
-    ~LocalisedStrings();
+    ~LocalisedStrings() = default;
 
     //==============================================================================
     /** Selects the current set of mappings to be used by the system.
@@ -159,7 +161,7 @@ public:
         countries: fr be mc ch lu
         @endcode
 
-        The country codes are supposed to be 2-character ISO complient codes.
+        The country codes are supposed to be 2-character ISO compliant codes.
     */
     const StringArray& getCountryCodes() const            { return countryCodes; }
 
@@ -188,8 +190,7 @@ private:
     String languageName;
     StringArray countryCodes;
     StringPairArray translations;
-    ScopedPointer<LocalisedStrings> fallback;
-    friend struct ContainerDeletePolicy<LocalisedStrings>;
+    std::unique_ptr<LocalisedStrings> fallback;
 
     void loadFromText (const String&, bool ignoreCase);
 

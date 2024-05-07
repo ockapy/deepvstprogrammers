@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -41,6 +41,8 @@ namespace juce
     - Recursive locking is supported.
 
     @see ScopedReadLock, ScopedWriteLock, CriticalSection
+
+    @tags{Core}
 */
 class JUCE_API  ReadWriteLock
 {
@@ -72,7 +74,7 @@ public:
         thread has it locked for writing, then this will fail and return false.
 
         @returns true if the lock is successfully gained.
-        @see exitRead, ScopedReadLock
+        @see exitRead, ScopedTryReadLock
     */
     bool tryEnterRead() const noexcept;
 
@@ -104,7 +106,7 @@ public:
         to obtain the lock.
 
         @returns true if the lock is successfully gained.
-        @see enterWrite
+        @see enterWrite, ScopedTryWriteLock
     */
     bool tryEnterWrite() const noexcept;
 
@@ -124,9 +126,9 @@ public:
 private:
     //==============================================================================
     SpinLock accessLock;
-    WaitableEvent waitEvent;
-    mutable int numWaitingWriters, numWriters;
-    mutable Thread::ThreadID writerThreadId;
+    WaitableEvent readWaitEvent, writeWaitEvent;
+    mutable int numWaitingWriters = 0, numWriters = 0;
+    mutable Thread::ThreadID writerThreadId = {};
 
     struct ThreadRecursionCount
     {

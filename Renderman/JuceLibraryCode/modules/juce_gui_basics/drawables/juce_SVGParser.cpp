@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -47,7 +46,7 @@ public:
         template <typename OperationType>
         bool applyOperationToChildWithID (const String& id, OperationType& op) const
         {
-            forEachXmlChildElement (*xml, e)
+            for (auto* e : xml->getChildIterator())
             {
                 XmlPath child (e, this);
 
@@ -190,16 +189,13 @@ public:
         }
         else
         {
-            if (viewBoxW == 0.0f)  newState.viewBoxW = newState.width;
-            if (viewBoxH == 0.0f)  newState.viewBoxH = newState.height;
+            if (approximatelyEqual (viewBoxW, 0.0f))  newState.viewBoxW = newState.width;
+            if (approximatelyEqual (viewBoxH, 0.0f))  newState.viewBoxH = newState.height;
         }
 
         newState.parseSubElements (xml, *drawable);
 
-        drawable->setContentArea (RelativeRectangle (RelativeCoordinate (viewboxXY.x),
-                                                     RelativeCoordinate (viewboxXY.x + newState.viewBoxW),
-                                                     RelativeCoordinate (viewboxXY.y),
-                                                     RelativeCoordinate (viewboxXY.y + newState.viewBoxH)));
+        drawable->setContentArea ({ viewboxXY.x, viewboxXY.y, newState.viewBoxW, newState.viewBoxH });
         drawable->resetBoundingBoxToContentArea();
 
         return drawable;
@@ -243,14 +239,13 @@ public:
                     else
                         path.lineTo (p1);
 
-                    last2 = last;
-                    last = p1;
+                    last2 = last = p1;
                 }
                 break;
 
             case 'H':
             case 'h':
-                if (parseCoord (d, p1.x, false, true))
+                if (parseCoord (d, p1.x, false, Axis::x))
                 {
                     if (isRelative)
                         p1.x += last.x;
@@ -268,7 +263,7 @@ public:
 
             case 'V':
             case 'v':
-                if (parseCoord (d, p1.y, false, false))
+                if (parseCoord (d, p1.y, false, Axis::y))
                 {
                     if (isRelative)
                         p1.y += last.y;
@@ -315,7 +310,11 @@ public:
                         p3 += last;
                     }
 
-                    p2 = last + (last - last2);
+                    p2 = last;
+
+                    if (CharPointer_ASCII ("CcSs").indexOf (previousCommand) >= 0)
+                        p2 += (last - last2);
+
                     path.cubicTo (p2, p1, p3);
 
                     last2 = p1;
@@ -348,8 +347,11 @@ public:
                     if (isRelative)
                         p1 += last;
 
-                    p2 = CharPointer_ASCII ("QqTt").indexOf (previousCommand) >= 0 ? last + (last - last2)
-                                                                                   : p1;
+                    p2 = last;
+
+                    if (CharPointer_ASCII ("QqTt").indexOf (previousCommand) >= 0)
+                        p2 += (last - last2);
+
                     path.quadraticTo (p2, p1);
 
                     last2 = p2;
@@ -362,18 +364,19 @@ public:
                 if (parseCoordsOrSkip (d, p1, false))
                 {
                     String num;
+                    bool flagValue = false;
 
                     if (parseNextNumber (d, num, false))
                     {
-                        const float angle = degreesToRadians (num.getFloatValue());
+                        auto angle = degreesToRadians (parseSafeFloat (num));
 
-                        if (parseNextNumber (d, num, false))
+                        if (parseNextFlag (d, flagValue))
                         {
-                            const bool largeArc = num.getIntValue() != 0;
+                            auto largeArc = flagValue;
 
-                            if (parseNextNumber (d, num, false))
+                            if (parseNextFlag (d, flagValue))
                             {
-                                const bool sweep = num.getIntValue() != 0;
+                                auto sweep = flagValue;
 
                                 if (parseCoordsOrSkip (d, p2, false))
                                 {
@@ -412,7 +415,7 @@ public:
             case 'z':
                 path.closeSubPath();
                 last = last2 = subpathStart;
-                d = d.findEndOfWhitespace();
+                d.incrementToEndOfWhitespace();
                 currentCommand = 'M';
                 break;
 
@@ -457,9 +460,9 @@ private:
     }
 
     //==============================================================================
-    void parseSubElements (const XmlPath& xml, DrawableComposite& parentDrawable, const bool shouldParseClip = true)
+    void parseSubElements (const XmlPath& xml, DrawableComposite& parentDrawable, bool shouldParseClip = true)
     {
-        forEachXmlChildElement (*xml, e)
+        for (auto* e : xml->getChildIterator())
         {
             const XmlPath child (xml.getChild (e));
 
@@ -488,7 +491,7 @@ private:
 
         if (tag == "g")         return parseGroupElement (xml, true);
         if (tag == "svg")       return parseSVGElement (xml);
-        if (tag == "text")      return parseText (xml, true);
+        if (tag == "text")      return parseText (xml, true, nullptr);
         if (tag == "image")     return parseImage (xml, true);
         if (tag == "switch")    return parseSwitch (xml);
         if (tag == "a")         return parseLinkElement (xml);
@@ -615,7 +618,7 @@ private:
         line.lineTo (x2, y2);
     }
 
-    void parsePolygon (const XmlPath& xml, const bool isPolyline, Path& path) const
+    void parsePolygon (const XmlPath& xml, bool isPolyline, Path& path) const
     {
         auto pointsAtt = xml->getStringAttribute ("points");
         auto points = pointsAtt.getCharPointer();
@@ -663,7 +666,7 @@ private:
 
     Drawable* parseUseOther (const XmlPath& xml) const
     {
-        if (auto* drawableText  = parseText (xml, false))    return drawableText;
+        if (auto* drawableText  = parseText (xml, false, nullptr))    return drawableText;
         if (auto* drawableImage = parseImage (xml, false))   return drawableImage;
 
         return nullptr;
@@ -680,7 +683,7 @@ private:
 
     //==============================================================================
     Drawable* parseShape (const XmlPath& xml, Path& path,
-                          const bool shouldParseTransform = true,
+                          bool shouldParseTransform = true,
                           AffineTransform* additonalTransform = nullptr) const
     {
         if (shouldParseTransform && xml->hasAttribute ("transform"))
@@ -747,12 +750,12 @@ private:
         for (auto t = dashList.getCharPointer();;)
         {
             float value;
-            if (! parseCoord (t, value, true, true))
+            if (! parseCoord (t, value, true, Axis::x))
                 break;
 
             dashLengths.add (value);
 
-            t = t.findEndOfWhitespace();
+            t.incrementToEndOfWhitespace();
 
             if (*t == ',')
                 ++t;
@@ -806,14 +809,14 @@ private:
     {
         if (xmlPath->hasTagNameIgnoringNamespace ("clipPath"))
         {
-            ScopedPointer<DrawableComposite> drawableClipPath (new DrawableComposite());
+            std::unique_ptr<DrawableComposite> drawableClipPath (new DrawableComposite());
 
             parseSubElements (xmlPath, *drawableClipPath, false);
 
             if (drawableClipPath->getNumChildComponents() > 0)
             {
                 setCommonAttributes (*drawableClipPath, xmlPath);
-                target.setClipPath (drawableClipPath.release());
+                target.setClipPath (std::move (drawableClipPath));
                 return true;
             }
         }
@@ -827,19 +830,19 @@ private:
 
         if (fillXml.xml != nullptr)
         {
-            forEachXmlChildElementWithTagName (*fillXml, e, "stop")
+            for (auto* e : fillXml->getChildWithTagNameIterator ("stop"))
             {
                 auto col = parseColour (fillXml.getChild (e), "stop-color", Colours::black);
 
                 auto opacity = getStyleAttribute (fillXml.getChild (e), "stop-opacity", "1");
-                col = col.withMultipliedAlpha (jlimit (0.0f, 1.0f, opacity.getFloatValue()));
+                col = col.withMultipliedAlpha (jlimit (0.0f, 1.0f, parseSafeFloat (opacity)));
 
-                double offset = e->getDoubleAttribute ("offset");
+                auto offset = parseSafeFloat (e->getStringAttribute ("offset"));
 
                 if (e->getStringAttribute ("offset").containsChar ('%'))
-                    offset *= 0.01;
+                    offset *= 0.01f;
 
-                cg.addColour (jlimit (0.0, 1.0, offset), col);
+                cg.addColour (jlimit (0.0f, 1.0f, offset), col);
                 result = true;
             }
         }
@@ -941,8 +944,7 @@ private:
 
         FillType type (gradient);
 
-        auto gradientTransform = parseTransform (fillXml->getStringAttribute ("gradientTransform"))
-                                   .followedBy (transform);
+        auto gradientTransform = parseTransform (fillXml->getStringAttribute ("gradientTransform"));
 
         if (gradient.isRadial)
         {
@@ -981,10 +983,10 @@ private:
         float opacity = 1.0f;
 
         if (overallOpacity.isNotEmpty())
-            opacity = jlimit (0.0f, 1.0f, overallOpacity.getFloatValue());
+            opacity = jlimit (0.0f, 1.0f, parseSafeFloat (overallOpacity));
 
         if (fillOpacity.isNotEmpty())
-            opacity *= (jlimit (0.0f, 1.0f, fillOpacity.getFloatValue()));
+            opacity *= jlimit (0.0f, 1.0f, parseSafeFloat (fillOpacity));
 
         String fill (getStyleAttribute (xml, fillAttribute));
         String urlID = parseURL (fill);
@@ -1021,7 +1023,8 @@ private:
 
     float getStrokeWidth (const String& strokeWidth) const noexcept
     {
-        return transform.getScaleFactor() * getCoordLength (strokeWidth, viewBoxW);
+        auto transformScale = std::sqrt (std::abs (transform.getDeterminant()));
+        return transformScale * getCoordLength (strokeWidth, viewBoxW);
     }
 
     PathStrokeType getStrokeFor (const XmlPath& xml) const
@@ -1032,11 +1035,10 @@ private:
     }
 
     //==============================================================================
-
     Drawable* useText (const XmlPath& xml) const
     {
-        auto translation = AffineTransform::translation ((float) xml->getDoubleAttribute ("x", 0.0),
-                                                         (float) xml->getDoubleAttribute ("y", 0.0));
+        auto translation = AffineTransform::translation (parseSafeFloat (xml->getStringAttribute ("x")),
+                                                         parseSafeFloat (xml->getStringAttribute ("y")));
 
         UseTextOp op = { this, &translation, nullptr };
 
@@ -1048,8 +1050,83 @@ private:
         return op.target;
     }
 
+    /*  Handling the stateful consumption of x and y coordinates added to <text> and <tspan> elements.
+
+        <text> elements must have their own x and y attributes, or be positioned at (0, 0) since groups
+        enclosing <text> elements can't have x and y attributes.
+
+        <tspan> elements can be embedded inside <text> elements, and <tspan> elements. <text> elements
+        can't be embedded inside <text> or <tspan> elements.
+
+        A <tspan> element can have its own x, y attributes, which it will consume at the same time as
+        it consumes its parent's attributes. Its own elements will take precedence, but parent elements
+        will be consumed regardless.
+    */
+    class StringLayoutState
+    {
+    public:
+        StringLayoutState (StringLayoutState* parentIn, Array<float> xIn, Array<float> yIn)
+            : parent (parentIn),
+              xCoords (std::move (xIn)),
+              yCoords (std::move (yIn))
+        {
+        }
+
+        Point<float> getNextStartingPos() const
+        {
+            if (parent != nullptr)
+                return parent->getNextStartingPos();
+
+            return nextStartingPos;
+        }
+
+        void setNextStartingPos (Point<float> newPos)
+        {
+            nextStartingPos = newPos;
+
+            if (parent != nullptr)
+                parent->setNextStartingPos (newPos);
+        }
+
+        std::pair<std::optional<float>, std::optional<float>> popCoords()
+        {
+            auto x = xCoords.isEmpty() ? std::optional<float>{} : std::make_optional (xCoords.removeAndReturn (0));
+            auto y = yCoords.isEmpty() ? std::optional<float>{} : std::make_optional (yCoords.removeAndReturn (0));
+
+            if (parent != nullptr)
+            {
+                auto [parentX, parentY] = parent->popCoords();
+
+                if (! x.has_value())
+                    x = parentX;
+
+                if (! y.has_value())
+                    y = parentY;
+            }
+
+            return { x, y };
+        }
+
+        bool hasMoreCoords() const
+        {
+            if (! xCoords.isEmpty() || ! yCoords.isEmpty())
+                return true;
+
+            if (parent != nullptr)
+                return parent->hasMoreCoords();
+
+            return false;
+        }
+
+    private:
+        StringLayoutState* parent = nullptr;
+        Point<float> nextStartingPos;
+        Array<float> xCoords, yCoords;
+    };
+
     Drawable* parseText (const XmlPath& xml, bool shouldParseTransform,
-                         AffineTransform* additonalTransform = nullptr) const
+                         AffineTransform* additonalTransform,
+                         StringLayoutState* parentLayoutState = nullptr) const
     {
         if (shouldParseTransform && xml->hasAttribute ("transform"))
         {
@@ -1062,15 +1139,14 @@ private:
         if (xml->hasTagName ("use"))
             return useText (xml);
 
-        if (! xml->hasTagName ("text"))
+        if (! xml->hasTagName ("text") && ! xml->hasTagNameIgnoringNamespace ("tspan"))
             return nullptr;
 
-        Array<float> xCoords, yCoords, dxCoords, dyCoords;
-
-        getCoordList (xCoords,  getInheritedAttribute (xml, "x"),  true, true);
-        getCoordList (yCoords,  getInheritedAttribute (xml, "y"),  true, false);
-        getCoordList (dxCoords, getInheritedAttribute (xml, "dx"), true, true);
-        getCoordList (dyCoords, getInheritedAttribute (xml, "dy"), true, false);
+        // If a <tspan> element has no x, or y attributes of its own, it can still use the
+        // parent's yet unconsumed such attributes.
+        StringLayoutState layoutState { parentLayoutState,
+                                        getCoordList (*xml, Axis::x),
+                                        getCoordList (*xml, Axis::y) };
 
         auto font = getFont (xml);
         auto anchorStr = getStyleAttribute (xml, "text-anchor");
@@ -1078,37 +1154,60 @@ private:
         auto dc = new DrawableComposite();
         setCommonAttributes (*dc, xml);
 
-        forEachXmlChildElement (*xml, e)
+        for (auto* e : xml->getChildIterator())
         {
             if (e->isTextElement())
             {
-                auto text = e->getText().trim();
+                auto fullText = e->getText();
 
-                auto dt = new DrawableText();
-                dc->addAndMakeVisible (dt);
+                const auto subtextElements = [&]
+                {
+                    std::vector<std::tuple<String, std::optional<float>, std::optional<float>>> result;
 
-                dt->setText (text);
-                dt->setFont (font, true);
+                    for (auto it = fullText.begin(), end = fullText.end(); it != end;)
+                    {
+                        const auto pos = layoutState.popCoords();
+                        const auto next = layoutState.hasMoreCoords() ? it + 1 : end;
+                        result.emplace_back (String (it, next), pos.first, pos.second);
+                        it = next;
+                    }
 
-                if (additonalTransform != nullptr)
-                    dt->setTransform (transform.followedBy (*additonalTransform));
-                else
-                    dt->setTransform (transform);
+                    return result;
+                }();
 
-                dt->setColour (parseColour (xml, "fill", Colours::black)
-                                 .withMultipliedAlpha (getStyleAttribute (xml, "fill-opacity", "1").getFloatValue()));
+                for (const auto& [text, optX, optY] : subtextElements)
+                {
+                    auto dt = new DrawableText();
+                    dc->addAndMakeVisible (dt);
 
-                Rectangle<float> bounds (xCoords[0], yCoords[0] - font.getAscent(),
-                                         font.getStringWidthFloat (text), font.getHeight());
+                    dt->setText (text);
+                    dt->setFont (font, true);
 
-                if (anchorStr == "middle")   bounds.setX (bounds.getX() - bounds.getWidth() / 2.0f);
-                else if (anchorStr == "end") bounds.setX (bounds.getX() - bounds.getWidth());
+                    if (additonalTransform != nullptr)
+                        dt->setDrawableTransform (transform.followedBy (*additonalTransform));
+                    else
+                        dt->setDrawableTransform (transform);
 
-                dt->setBoundingBox (bounds);
+                    dt->setColour (parseColour (xml, "fill", Colours::black)
+                                       .withMultipliedAlpha (parseSafeFloat (getStyleAttribute (xml, "fill-opacity", "1"))));
+
+                    const auto x = optX.value_or (layoutState.getNextStartingPos().getX());
+                    const auto y = optY.value_or (layoutState.getNextStartingPos().getY());
+
+                    Rectangle<float> bounds (x, y - font.getAscent(),
+                                             font.getStringWidthFloat (text), font.getHeight());
+
+                    if (anchorStr == "middle")   bounds.setX (bounds.getX() - bounds.getWidth() / 2.0f);
+                    else if (anchorStr == "end") bounds.setX (bounds.getX() - bounds.getWidth());
+
+                    dt->setBoundingBox (bounds);
+
+                    layoutState.setNextStartingPos ({ bounds.getRight(), y });
+                }
             }
             else if (e->hasTagNameIgnoringNamespace ("tspan"))
             {
-                dc->addAndMakeVisible (parseText (xml.getChild (e), true));
+                dc->addAndMakeVisible (parseText (xml.getChild (e), true, nullptr, &layoutState));
             }
         }
 
@@ -1135,8 +1234,8 @@ private:
     //==============================================================================
     Drawable* useImage (const XmlPath& xml) const
     {
-        auto translation = AffineTransform::translation ((float) xml->getDoubleAttribute ("x", 0.0),
-                                                         (float) xml->getDoubleAttribute ("y", 0.0));
+        auto translation = AffineTransform::translation (parseSafeFloat (xml->getStringAttribute ("x")),
+                                                         parseSafeFloat (xml->getStringAttribute ("y")));
 
         UseImageOp op = { this, &translation, nullptr };
 
@@ -1167,15 +1266,14 @@ private:
 
         auto link = xml->getStringAttribute ("xlink:href");
 
-        ScopedPointer<InputStream> inputStream;
+        std::unique_ptr<InputStream> inputStream;
         MemoryOutputStream imageStream;
 
         if (link.startsWith ("data:"))
         {
             const auto indexOfComma = link.indexOf (",");
             auto format = link.substring (5, indexOfComma).trim();
-
-            const auto indexOfSemi = format.indexOf (";");
+            auto indexOfSemi = format.indexOf (";");
 
             if (format.substring (indexOfSemi + 1).trim().equalsIgnoreCase ("base64"))
             {
@@ -1183,10 +1281,10 @@ private:
 
                 if (mime.equalsIgnoreCase ("image/png") || mime.equalsIgnoreCase ("image/jpeg"))
                 {
-                    const String base64text = link.substring (indexOfComma + 1).removeCharacters ("\t\n\r ");
+                    auto base64text = link.substring (indexOfComma + 1).removeCharacters ("\t\n\r ");
 
                     if (Base64::convertFromBase64 (imageStream, base64text))
-                        inputStream = new MemoryInputStream (imageStream.getData(), imageStream.getDataSize(), false);
+                        inputStream.reset (new MemoryInputStream (imageStream.getData(), imageStream.getDataSize(), false));
                 }
             }
         }
@@ -1207,12 +1305,21 @@ private:
                 auto* di = new DrawableImage();
 
                 setCommonAttributes (*di, xml);
-                di->setImage (image);
+
+                Rectangle<float> imageBounds (parseSafeFloat (xml->getStringAttribute ("x")),
+                                              parseSafeFloat (xml->getStringAttribute ("y")),
+                                              parseSafeFloat (xml->getStringAttribute ("width",  String (image.getWidth()))),
+                                              parseSafeFloat (xml->getStringAttribute ("height", String (image.getHeight()))));
+
+                di->setImage (image.rescaled ((int) imageBounds.getWidth(),
+                                              (int) imageBounds.getHeight()));
+
+                di->setTransformToFit (imageBounds, RectanglePlacement (parsePlacementFlags (xml->getStringAttribute ("preserveAspectRatio").trim())));
 
                 if (additionalTransform != nullptr)
-                    di->setTransform (transform.followedBy (*additionalTransform));
+                    di->setTransform (di->getTransform().followedBy (transform).followedBy (*additionalTransform));
                 else
-                    di->setTransform (transform);
+                    di->setTransform (di->getTransform().followedBy (transform));
 
                 return di;
             }
@@ -1229,7 +1336,9 @@ private:
     }
 
     //==============================================================================
-    bool parseCoord (String::CharPointerType& s, float& value, const bool allowUnits, const bool isX) const
+    enum class Axis { x, y };
+
+    bool parseCoord (String::CharPointerType& s, float& value, bool allowUnits, Axis axis) const
     {
         String number;
 
@@ -1239,17 +1348,17 @@ private:
             return false;
         }
 
-        value = getCoordLength (number, isX ? viewBoxW : viewBoxH);
+        value = getCoordLength (number, axis == Axis::x ? viewBoxW : viewBoxH);
         return true;
     }
 
-    bool parseCoords (String::CharPointerType& s, Point<float>& p, const bool allowUnits) const
+    bool parseCoords (String::CharPointerType& s, Point<float>& p, bool allowUnits) const
     {
-        return parseCoord (s, p.x, allowUnits, true)
-            && parseCoord (s, p.y, allowUnits, false);
+        return parseCoord (s, p.x, allowUnits, Axis::x)
+            && parseCoord (s, p.y, allowUnits, Axis::y);
     }
 
-    bool parseCoordsOrSkip (String::CharPointerType& s, Point<float>& p, const bool allowUnits) const
+    bool parseCoordsOrSkip (String::CharPointerType& s, Point<float>& p, bool allowUnits) const
     {
         if (parseCoords (s, p, allowUnits))
             return true;
@@ -1260,8 +1369,8 @@ private:
 
     float getCoordLength (const String& s, const float sizeForProportions) const noexcept
     {
-        float n = s.getFloatValue();
-        const int len = s.length();
+        auto n = parseSafeFloat (s);
+        auto len = s.length();
 
         if (len > 2)
         {
@@ -1285,13 +1394,32 @@ private:
         return getCoordLength (xml->getStringAttribute (attName), sizeForProportions);
     }
 
-    void getCoordList (Array<float>& coords, const String& list, bool allowUnits, const bool isX) const
+    Array<float> getCoordList (const XmlElement& xml, Axis axis) const
+    {
+        const String attributeName { axis == Axis::x ? "x" : "y" };
+
+        if (! xml.hasAttribute (attributeName))
+            return {};
+
+        return getCoordList (xml.getStringAttribute (attributeName), true, axis);
+    }
+
+    Array<float> getCoordList (const String& list, bool allowUnits, Axis axis) const
     {
         auto text = list.getCharPointer();
         float value;
+        Array<float> coords;
 
-        while (parseCoord (text, value, allowUnits, isX))
+        while (parseCoord (text, value, allowUnits, axis))
             coords.add (value);
+
+        return coords;
+    }
+
+    static float parseSafeFloat (const String& s)
+    {
+        auto n = s.getFloatValue();
+        return (std::isnan (n) || std::isinf (n)) ? 0.0f : n;
     }
 
     //==============================================================================
@@ -1444,7 +1572,7 @@ private:
         return CharacterFunctions::isDigit (c) || c == '-' || c == '+';
     }
 
-    static bool parseNextNumber (String::CharPointerType& text, String& value, const bool allowUnits)
+    static bool parseNextNumber (String::CharPointerType& text, String& value, bool allowUnits)
     {
         auto s = text;
 
@@ -1494,6 +1622,22 @@ private:
         return true;
     }
 
+    static bool parseNextFlag (String::CharPointerType& text, bool& value)
+    {
+        while (text.isWhitespace() || *text == ',')
+            ++text;
+
+        if (*text != '0' && *text != '1')
+            return false;
+
+        value = *(text++) != '0';
+
+        while (text.isWhitespace() || *text == ',')
+             ++text;
+
+        return true;
+    }
+
     //==============================================================================
     Colour parseColour (const XmlPath& xml, StringRef attributeName, const Colour defaultColour) const
     {
@@ -1501,16 +1645,18 @@ private:
 
         if (text.startsWithChar ('#'))
         {
-            uint32 hex[6] = { 0 };
+            uint32 hex[8] = { 0 };
+            hex[6] = hex[7] = 15;
+
             int numChars = 0;
             auto s = text.getCharPointer();
 
-            while (numChars < 6)
+            while (numChars < 8)
             {
                 auto hexValue = CharacterFunctions::getHexDigitValue (*++s);
 
                 if (hexValue >= 0)
-                    hex [numChars++] = (uint32) hexValue;
+                    hex[numChars++] = (uint32) hexValue;
                 else
                     break;
             }
@@ -1522,30 +1668,53 @@ private:
 
             return Colour ((uint8) ((hex[0] << 4) + hex[1]),
                            (uint8) ((hex[2] << 4) + hex[3]),
-                           (uint8) ((hex[4] << 4) + hex[5]));
+                           (uint8) ((hex[4] << 4) + hex[5]),
+                           (uint8) ((hex[6] << 4) + hex[7]));
         }
 
-        if (text.startsWith ("rgb"))
+        if (text.startsWith ("rgb") || text.startsWith ("hsl"))
         {
-            auto openBracket = text.indexOfChar ('(');
-            auto closeBracket = text.indexOfChar (openBracket, ')');
-
-            if (openBracket >= 3 && closeBracket > openBracket)
+            auto tokens = [&text]
             {
-                StringArray tokens;
-                tokens.addTokens (text.substring (openBracket + 1, closeBracket), ",", "");
-                tokens.trim();
-                tokens.removeEmptyStrings();
+                auto openBracket = text.indexOfChar ('(');
+                auto closeBracket = text.indexOfChar (openBracket, ')');
 
-                if (tokens[0].containsChar ('%'))
-                    return Colour ((uint8) roundToInt (2.55 * tokens[0].getDoubleValue()),
-                                   (uint8) roundToInt (2.55 * tokens[1].getDoubleValue()),
-                                   (uint8) roundToInt (2.55 * tokens[2].getDoubleValue()));
+                StringArray arr;
 
-                return Colour ((uint8) tokens[0].getIntValue(),
-                               (uint8) tokens[1].getIntValue(),
-                               (uint8) tokens[2].getIntValue());
-            }
+                if (openBracket >= 3 && closeBracket > openBracket)
+                {
+                    arr.addTokens (text.substring (openBracket + 1, closeBracket), ",", "");
+                    arr.trim();
+                    arr.removeEmptyStrings();
+                }
+
+                return arr;
+            }();
+
+            auto alpha = [&tokens, &text]
+            {
+                if ((text.startsWith ("rgba") || text.startsWith ("hsla")) && tokens.size() == 4)
+                    return parseSafeFloat (tokens[3]);
+
+                return 1.0f;
+            }();
+
+            if (text.startsWith ("hsl"))
+                return Colour::fromHSL (parseSafeFloat (tokens[0]) / 360.0f,
+                                        parseSafeFloat (tokens[1]) / 100.0f,
+                                        parseSafeFloat (tokens[2]) / 100.0f,
+                                        alpha);
+
+            if (tokens[0].containsChar ('%'))
+                return Colour ((uint8) roundToInt (2.55f * parseSafeFloat (tokens[0])),
+                               (uint8) roundToInt (2.55f * parseSafeFloat (tokens[1])),
+                               (uint8) roundToInt (2.55f * parseSafeFloat (tokens[2])),
+                               alpha);
+
+            return Colour ((uint8) tokens[0].getIntValue(),
+                           (uint8) tokens[1].getIntValue(),
+                           (uint8) tokens[2].getIntValue(),
+                           alpha);
         }
 
         if (text == "inherit")
@@ -1574,7 +1743,7 @@ private:
             float numbers[6];
 
             for (int i = 0; i < numElementsInArray (numbers); ++i)
-                numbers[i] = tokens[i].getFloatValue();
+                numbers[i] = parseSafeFloat (tokens[i]);
 
             AffineTransform trans;
 
@@ -1611,10 +1780,10 @@ private:
         return result;
     }
 
-    static void endpointToCentreParameters (const double x1, const double y1,
-                                            const double x2, const double y2,
-                                            const double angle,
-                                            const bool largeArc, const bool sweep,
+    static void endpointToCentreParameters (double x1, double y1,
+                                            double x2, double y2,
+                                            double angle,
+                                            bool largeArc, bool sweep,
                                             double& rx, double& ry,
                                             double& centreX, double& centreY,
                                             double& startAngle, double& deltaAngle) noexcept
@@ -1669,7 +1838,7 @@ private:
         if (uy < 0)
             startAngle = -startAngle;
 
-        startAngle += double_Pi * 0.5;
+        startAngle += MathConstants<double>::halfPi;
 
         deltaAngle = acos (jlimit (-1.0, 1.0, ((ux * vx) + (uy * vy))
                                                 / (length * juce_hypot (vx, vy))));
@@ -1680,48 +1849,38 @@ private:
         if (sweep)
         {
             if (deltaAngle < 0)
-                deltaAngle += double_Pi * 2.0;
+                deltaAngle += MathConstants<double>::twoPi;
         }
         else
         {
             if (deltaAngle > 0)
-                deltaAngle -= double_Pi * 2.0;
+                deltaAngle -= MathConstants<double>::twoPi;
         }
 
-        deltaAngle = fmod (deltaAngle, double_Pi * 2.0);
+        deltaAngle = fmod (deltaAngle, MathConstants<double>::twoPi);
     }
 
-    SVGState& operator= (const SVGState&) JUCE_DELETED_FUNCTION;
+    SVGState (const SVGState&) = default;
+    SVGState& operator= (const SVGState&) = delete;
 };
 
 
 //==============================================================================
-Drawable* Drawable::createFromSVG (const XmlElement& svgDocument)
+std::unique_ptr<Drawable> Drawable::createFromSVG (const XmlElement& svgDocument)
 {
     if (! svgDocument.hasTagNameIgnoringNamespace ("svg"))
-        return nullptr;
+        return {};
 
     SVGState state (&svgDocument);
-    return state.parseSVGElement (SVGState::XmlPath (&svgDocument, nullptr));
+    return std::unique_ptr<Drawable> (state.parseSVGElement (SVGState::XmlPath (&svgDocument, {})));
 }
 
-Drawable* Drawable::createFromSVGFile (const File& svgFile)
+std::unique_ptr<Drawable> Drawable::createFromSVGFile (const File& svgFile)
 {
-    XmlDocument doc (svgFile);
-    ScopedPointer<XmlElement> outer (doc.getDocumentElement (true));
+    if (auto xml = parseXMLIfTagMatches (svgFile, "svg"))
+        return createFromSVG (*xml);
 
-    if (outer != nullptr && outer->hasTagName ("svg"))
-    {
-        ScopedPointer<XmlElement> svgDocument (doc.getDocumentElement());
-
-        if (svgDocument != nullptr)
-        {
-            SVGState state (svgDocument, svgFile);
-            return state.parseSVGElement (SVGState::XmlPath (svgDocument, nullptr));
-        }
-    }
-
-    return nullptr;
+    return {};
 }
 
 Path Drawable::parseSVGPath (const String& svgPath)

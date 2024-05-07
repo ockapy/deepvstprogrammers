@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -35,6 +34,8 @@ namespace juce
     standard ones which has a tick-box and a text label next to it.
 
     @see Button, DrawableButton, TextButton
+
+    @tags{GUI}
 */
 class JUCE_API  ToggleButton  : public Button
 {
@@ -52,7 +53,7 @@ public:
     explicit ToggleButton (const String& buttonText);
 
     /** Destructor. */
-    ~ToggleButton();
+    ~ToggleButton() override;
 
     //==============================================================================
     /** Resizes the button to fit neatly around its current text.
@@ -72,13 +73,16 @@ public:
     {
         textColourId            = 0x1006501,  /**< The colour to use for the button's text. */
         tickColourId            = 0x1006502,  /**< The colour to use for the tick mark. */
-        tickDisabledColourId    = 0x1006503   /**< The colour to use for the disabled tick mark. */
+        tickDisabledColourId    = 0x1006503   /**< The colour to use for the disabled tick mark and/or outline. */
     };
+
+    /** @internal */
+    std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
 
 protected:
     //==============================================================================
     /** @internal */
-    void paintButton (Graphics&, bool isMouseOverButton, bool isButtonDown) override;
+    void paintButton (Graphics&, bool, bool) override;
     /** @internal */
     void colourChanged() override;
 

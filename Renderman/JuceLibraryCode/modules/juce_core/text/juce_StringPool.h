@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -33,6 +33,8 @@ namespace juce
     is returned every time a matching string is asked for. This means that it's trivial to
     compare two pooled strings for equality, as you can simply compare their pointers. It
     also cuts down on storage if you're using many copies of the same string.
+
+    @tags{Core}
 */
 class JUCE_API  StringPool
 {
@@ -40,9 +42,6 @@ public:
     //==============================================================================
     /** Creates an empty pool. */
     StringPool() noexcept;
-
-    /** Destructor */
-    ~StringPool();
 
     //==============================================================================
     /** Returns a pointer to a shared copy of the string that is passed in.

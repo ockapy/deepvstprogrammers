@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -32,7 +31,7 @@ static Typeface::Ptr getTypefaceForFontFromLookAndFeel (const Font& font)
     return LookAndFeel::getDefaultLookAndFeel().getTypefaceForFont (font);
 }
 
-typedef Typeface::Ptr (*GetTypefaceForFont) (const Font&);
+using GetTypefaceForFont = Typeface::Ptr (*)(const Font&);
 extern GetTypefaceForFont juce_getTypefaceForFont;
 
 //==============================================================================
@@ -41,7 +40,7 @@ LookAndFeel::LookAndFeel()
     /* if this fails it means you're trying to create a LookAndFeel object before
        the static Colours have been initialised. That ain't gonna work. It probably
        means that you're using a static LookAndFeel object and that your compiler has
-       decided to intialise it before the Colours class.
+       decided to initialise it before the Colours class.
     */
     jassert (Colours::white == Colour (0xffffffff));
 
@@ -50,10 +49,20 @@ LookAndFeel::LookAndFeel()
 
 LookAndFeel::~LookAndFeel()
 {
-    /* This assertion is triggered if you try to delete a LookAndFeel object while it's
-         - still being used as the default LookAndFeel; or
-         - is set as a Component's current lookandfeel; or
-         - pointed to by a WeakReference somewhere else in the code
+    /* This assertion is triggered if you try to delete a LookAndFeel object while something
+       is still using it!
+
+       Reasons may be:
+         - it's still being used as the default LookAndFeel; or
+         - it's set as a Component's current lookandfeel; or
+         - there's a WeakReference to it somewhere else in your code
+
+       Generally the fix for this will be to make sure you call
+       Component::setLookAndFeel (nullptr) on any components that were still using
+       it before you delete it, or call LookAndFeel::setDefaultLookAndFeel (nullptr)
+       if you had set it up to be the default one. This assertion can also be avoided by
+       declaring your LookAndFeel object before any of the Components that use it as
+       the Components will be destroyed before the LookAndFeel.
 
        Deleting a LookAndFeel is unlikely to cause a crash since most things will use a
        safe WeakReference to it, but it could cause some unexpected graphical behaviour,
@@ -71,7 +80,7 @@ Colour LookAndFeel::findColour (int colourID) const noexcept
     auto index = colours.indexOf (c);
 
     if (index >= 0)
-        return colours.getReference (index).colour;
+        return colours[index].colour;
 
     jassertfalse;
     return Colours::black;
@@ -108,20 +117,36 @@ void LookAndFeel::setDefaultLookAndFeel (LookAndFeel* newDefaultLookAndFeel) noe
 //==============================================================================
 Typeface::Ptr LookAndFeel::getTypefaceForFont (const Font& font)
 {
-    if (defaultSans.isNotEmpty() && font.getTypefaceName() == Font::getDefaultSansSerifFontName())
+    if (font.getTypefaceName() == Font::getDefaultSansSerifFontName())
     {
-        Font f (font);
-        f.setTypefaceName (defaultSans);
-        return Typeface::createSystemTypefaceFor (f);
+        if (defaultTypeface != nullptr)
+            return defaultTypeface;
+
+        if (defaultSans.isNotEmpty())
+        {
+            Font f (font);
+            f.setTypefaceName (defaultSans);
+            return Typeface::createSystemTypefaceFor (f);
+        }
     }
 
     return Font::getDefaultTypefaceForFont (font);
+}
+
+void LookAndFeel::setDefaultSansSerifTypeface (Typeface::Ptr newDefaultTypeface)
+{
+    if (defaultTypeface != newDefaultTypeface)
+    {
+        defaultTypeface = newDefaultTypeface;
+        Typeface::clearTypefaceCache();
+    }
 }
 
 void LookAndFeel::setDefaultSansSerifTypefaceName (const String& newName)
 {
     if (defaultSans != newName)
     {
+        defaultTypeface.reset();
         Typeface::clearTypefaceCache();
         defaultSans = newName;
     }
@@ -142,10 +167,11 @@ MouseCursor LookAndFeel::getMouseCursorFor (Component& component)
     return cursor;
 }
 
-LowLevelGraphicsContext* LookAndFeel::createGraphicsContext (const Image& imageToRenderOn, const Point<int>& origin,
-                                                             const RectangleList<int>& initialClip)
+std::unique_ptr<LowLevelGraphicsContext> LookAndFeel::createGraphicsContext (const Image& imageToRenderOn,
+                                                                             Point<int> origin,
+                                                                             const RectangleList<int>& initialClip)
 {
-    return new LowLevelGraphicsSoftwareRenderer (imageToRenderOn, origin, initialClip);
+    return std::make_unique<LowLevelGraphicsSoftwareRenderer> (imageToRenderOn, origin, initialClip);
 }
 
 //==============================================================================
@@ -156,7 +182,7 @@ void LookAndFeel::setUsingNativeAlertWindows (bool shouldUseNativeAlerts)
 
 bool LookAndFeel::isUsingNativeAlertWindows()
 {
-   #if JUCE_LINUX
+   #if JUCE_LINUX || JUCE_BSD
     return false; // not available currently..
    #else
     return useNativeAlertWindows;

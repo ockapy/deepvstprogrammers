@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -31,15 +31,17 @@ namespace juce
     caller to create an input stream that can read from it when required.
 
     @see FileInputSource
+
+    @tags{Core}
 */
 class JUCE_API  InputSource
 {
 public:
     //==============================================================================
-    InputSource() noexcept      {}
+    InputSource() = default;
 
     /** Destructor. */
-    virtual ~InputSource()      {}
+    virtual ~InputSource() = default;
 
     //==============================================================================
     /** Returns a new InputStream to read this item.

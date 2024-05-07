@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -34,36 +33,42 @@ namespace juce
     This is a Juce-based file dialog box; to use a native file chooser, see the
     FileChooser class.
 
-    To use one of these, create it and call its show() method. e.g.
-
     @code
     {
-        WildcardFileFilter wildcardFilter ("*.foo", String(), "Foo files");
+        wildcardFilter = std::make_unique<WildcardFileFilter> ("*.foo", String(), "Foo files");
 
-        FileBrowserComponent browser (FileBrowserComponent::canSelectFiles,
-                                      File(),
-                                      &wildcardFilter,
-                                      nullptr);
+        browser = std::make_unique<FileBrowserComponent> (FileBrowserComponent::canSelectFiles,
+                                                          File(),
+                                                          wildcardFilter.get(),
+                                                          nullptr);
 
-        FileChooserDialogBox dialogBox ("Open some kind of file",
-                                        "Please choose some kind of file that you want to open...",
-                                        browser,
-                                        false,
-                                        Colours::lightgrey);
+        dialogBox = std::make_unique<FileChooserDialogBox> ("Open some kind of file",
+                                                            "Please choose some kind of file that you want to open...",
+                                                            *browser,
+                                                            false,
+                                                            Colours::lightgrey);
 
-        if (dialogBox.show())
+        auto onFileSelected = [this] (int r)
         {
-            File selectedFile = browser.getSelectedFile (0);
+            modalStateFinished (r);
 
-            ...etc..
-        }
+            auto selectedFile = browser->getSelectedFile (0);
+
+            ...etc...
+        };
+
+        dialogBox->centreWithDefaultSize (nullptr);
+        dialogBox->enterModalState (true,
+                                    ModalCallbackFunction::create (onFileSelected),
+                                    false);
     }
     @endcode
 
     @see FileChooser
+
+    @tags{GUI}
 */
 class JUCE_API  FileChooserDialogBox : public ResizableWindow,
-                                       private Button::Listener,
                                        private FileBrowserListener
 {
 public:
@@ -80,6 +85,11 @@ public:
                                 if they try to select a file that already exists. (This
                                 flag is only used when saving files)
         @param backgroundColour the background colour for the top level window
+        @param parentComponent  an optional component which should be the parent
+                                for the file chooser. If this is a nullptr then the
+                                dialog box will be a top-level window. AUv3s on iOS
+                                must specify this parameter as opening a top-level window
+                                in an AUv3 is forbidden due to sandbox restrictions.
 
         @see FileBrowserComponent, FilePreviewComponent
     */
@@ -87,10 +97,11 @@ public:
                           const String& instructions,
                           FileBrowserComponent& browserComponent,
                           bool warnAboutOverwritingExistingFiles,
-                          Colour backgroundColour);
+                          Colour backgroundColour,
+                          Component* parentComponent = nullptr);
 
     /** Destructor. */
-    ~FileChooserDialogBox();
+    ~FileChooserDialogBox() override;
 
     //==============================================================================
    #if JUCE_MODAL_LOOPS_PERMITTED
@@ -136,7 +147,6 @@ private:
     ContentComponent* content;
     const bool warnAboutOverwritingExistingFiles;
 
-    void buttonClicked (Button*) override;
     void closeButtonPressed();
     void selectionChanged() override;
     void fileClicked (const File&, const MouseEvent&) override;
@@ -148,8 +158,9 @@ private:
     void createNewFolder();
     void createNewFolderConfirmed (const String& name);
 
-    static void okToOverwriteFileCallback (int result, FileChooserDialogBox*);
     static void createNewFolderCallback (int result, FileChooserDialogBox*, Component::SafePointer<AlertWindow>);
+
+    ScopedMessageBox messageBox;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FileChooserDialogBox)
 };

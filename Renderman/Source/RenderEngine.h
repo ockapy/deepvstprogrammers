@@ -19,7 +19,7 @@
 #include "Maximilian/maximilian.h"
 #include "Maximilian/libs/maxiFFT.h"
 #include "Maximilian/libs/maxiMFCC.h"
-#include <boost/python.hpp>
+#include "boost/python.hpp"
 #include "../JuceLibraryCode/JuceHeader.h"
 
 using namespace juce;
@@ -49,7 +49,7 @@ public:
         if (plugin != nullptr)
         {
             plugin->releaseResources();
-            delete plugin;
+            delete plugin.get();
         }
     }
 
@@ -61,7 +61,7 @@ public:
                                   KnownPluginList& pluginList
                                   );
 
-    bool loadPlugin (const std::string& path, int index = 0);
+    bool loadPlugin (const std::string& path);
     
     void setPatch (const PluginPatch patch);
 
@@ -83,7 +83,7 @@ public:
 
     const size_t getPluginParameterSize();
 
-    ParameterNameList getPluginParametersDescription();
+    const String getPluginParametersDescription();
 
     bool overridePluginParameter (const int   index,
                                   const float value);
@@ -113,13 +113,14 @@ private:
     int                  bufferSize;
     int                  fftSize;
     maxiMFCC             mfcc;
-    AudioPluginInstance* plugin;
+    std::shared_ptr<AudioPluginInstance> plugin;
     PluginPatch          pluginParameters;
     PluginPatch          overridenParameters;
     MFCCFeatures         mfccFeatures;
     std::vector<double>  processedMonoAudioPreview;
     std::vector<double>  rmsFrames;
     double               currentRmsFrame;
+
 };
 
 

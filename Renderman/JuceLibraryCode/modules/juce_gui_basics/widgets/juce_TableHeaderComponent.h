@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -40,6 +39,8 @@ namespace juce
     Each column must be given a unique ID number that's used to refer to it.
 
     @see TableListBox, TableHeaderComponent::Listener
+
+    @tags{GUI}
 */
 class JUCE_API  TableHeaderComponent   : public Component,
                                          private AsyncUpdater
@@ -51,7 +52,7 @@ public:
     TableHeaderComponent();
 
     /** Destructor. */
-    ~TableHeaderComponent();
+    ~TableHeaderComponent() override;
 
     //==============================================================================
     /** A combination of these flags are passed into the addColumn() method to specify
@@ -192,7 +193,7 @@ public:
 
     /** Triggers a re-sort of the table according to the current sort-column.
 
-        If you modifiy the table's contents, you can call this to signal that the table needs
+        If you modify the table's contents, you can call this to signal that the table needs
         to be re-sorted.
 
         (This doesn't do any sorting synchronously - it just asynchronously sends a call to the
@@ -227,7 +228,7 @@ public:
 
         The index is an index from 0 to the number of columns that are currently visible (hidden
         ones are not counted). It returns a rectangle showing the position of the column relative
-        to this component's top-left. If the index is out-of-range, an empty rectangle is retrurned.
+        to this component's top-left. If the index is out-of-range, an empty rectangle is returned.
     */
     Rectangle<int> getColumnPosition (int index) const;
 
@@ -304,10 +305,10 @@ public:
     {
     public:
         //==============================================================================
-        Listener() {}
+        Listener() = default;
 
         /** Destructor. */
-        virtual ~Listener() {}
+        virtual ~Listener() = default;
 
         //==============================================================================
         /** This is called when some of the table's columns are added, removed, hidden,
@@ -380,7 +381,7 @@ public:
         highlightColourId              = 0x1003830, /**< The colour of the table header background when
                                                          the mouse is over or down above the the table
                                                          header. It's up to the LookAndFeel to use a
-                                                         variant of this colour to destiuish between
+                                                         variant of this colour to distinguish between
                                                          the down and hover state. */
     };
 
@@ -388,7 +389,7 @@ public:
     /** This abstract base class is implemented by LookAndFeel classes. */
     struct JUCE_API  LookAndFeelMethods
     {
-        virtual ~LookAndFeelMethods() {}
+        virtual ~LookAndFeelMethods() = default;
 
         virtual void drawTableHeaderBackground (Graphics&, TableHeaderComponent&) = 0;
 
@@ -401,6 +402,8 @@ public:
     //==============================================================================
     /** @internal */
     void paint (Graphics&) override;
+    /** @internal */
+    void resized() override;
     /** @internal */
     void mouseMove (const MouseEvent&) override;
     /** @internal */
@@ -415,23 +418,25 @@ public:
     void mouseUp (const MouseEvent&) override;
     /** @internal */
     MouseCursor getMouseCursor() override;
+    /** @internal */
+    std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
 
     /** Can be overridden for more control over the pop-up menu behaviour. */
     virtual void showColumnChooserMenu (int columnIdClicked);
 
 private:
-    struct ColumnInfo
+    struct ColumnInfo : public Component
     {
-        String name;
+        ColumnInfo() { setInterceptsMouseClicks (false, false); }
+        std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
+
         int id, propertyFlags, width, minimumWidth, maximumWidth;
         double lastDeliberateWidth;
-
-        bool isVisible() const;
     };
 
     OwnedArray<ColumnInfo> columns;
     Array<Listener*> listeners;
-    ScopedPointer<Component> dragOverlayComp;
+    std::unique_ptr<Component> dragOverlayComp;
     class DragOverlayComp;
 
     bool columnsChanged = false, columnsResized = false, sortChanged = false;
@@ -449,11 +454,10 @@ private:
     void updateColumnUnderMouse (const MouseEvent&);
     void setColumnUnderMouse (int columnId);
     void resizeColumnsToFit (int firstColumnIndex, int targetTotalWidth);
+    void drawColumnHeader (Graphics&, LookAndFeel&, const ColumnInfo&);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TableHeaderComponent)
 };
 
-/** This typedef is just for compatibility with old code - newer code should use the TableHeaderComponent::Listener class directly. */
-typedef TableHeaderComponent::Listener TableHeaderListener;
 
 } // namespace juce

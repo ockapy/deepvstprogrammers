@@ -46,7 +46,7 @@ extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
 
 # print np.array(extractor.overriden_parameters)
 
-path = dir+"/VST/Dexed.so"
+path = dir+"/VST/Dexed.dll"
 # path = "/home/tollie/Development/vsts/synths/granulator/Builds/build-granulator-Desktop-Debug/build/debug/granulator.so"
 # path = "/home/tollie/Downloads/synths/FMSynth/Builds/LinuxMakefile/build/FMSynthesiser.so"
 

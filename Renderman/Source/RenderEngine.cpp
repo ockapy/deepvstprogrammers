@@ -38,49 +38,46 @@ std::string RenderEngine::getAvailablePluginsXml(const std::string& path) {
     KnownPluginList pluginList;
     fillAvailablePluginsInfo(path, pluginFormatManager, pluginDescriptions, pluginList);
     
-    XmlElement* ptr = pluginList.createXml();
+    std::unique_ptr<XmlElement> ptr = pluginList.createXml();
     String serialized = ptr->createDocument("");
-    delete ptr;
+    delete ptr.get();
     
     return serialized.toStdString();
 }
 
 
-bool RenderEngine::loadPlugin (const std::string& path, int index)
+bool RenderEngine::loadPlugin (const std::string& path)
 {
     AudioPluginFormatManager pluginFormatManager;
     OwnedArray<PluginDescription> pluginDescriptions;
     KnownPluginList pluginList;
     fillAvailablePluginsInfo(path, pluginFormatManager, pluginDescriptions, pluginList);
-
+    cout << "before jassert" << endl;
     // If there is a problem here first check the preprocessor definitions
     // in the projucer are sensible - is it set up to scan for plugin's?
     jassert (pluginDescriptions.size() > 0);
-
-    if (index >= pluginDescriptions.size()) {
-        std::cout << "RenderEngine::loadPlugin error: plugin index " << index
-        << "provided, but only " << pluginDescriptions.size()
-        << "plugins detected" << std::endl;
-        return false;
-    }
-    
+    cout << "after jassert" << endl;
     String errorMessage;
 
     if (plugin != nullptr) {
+        cout << "plugin != nullptr" << endl;
         plugin->releaseResources();
-        delete plugin;
+        delete plugin.get();
     }
 
-    plugin = pluginFormatManager.createPluginInstance (*pluginDescriptions[index],
+    cout << "before create plugin instance" << endl;
+    plugin = pluginFormatManager.createPluginInstance (*pluginDescriptions[0],
                                                        sampleRate,
                                                        bufferSize,
                                                        errorMessage);
+    cout << "after create instance" << endl;
     if (plugin != nullptr)
     {
+
         // Success so set up plugin, then set up features and get all available
         // parameters from this given plugin.
-        plugin->prepareToPlay (sampleRate, bufferSize);
-        plugin->setNonRealtime (true);
+        plugin->prepareToPlay(sampleRate, bufferSize);
+        plugin->setNonRealtime(true);
 
         mfcc.setup (512, 42, 13, 20, int (sampleRate / 2), sampleRate);
 
@@ -107,15 +104,14 @@ void RenderEngine::renderPatch (const uint8  midiNote,
     // Get the overriden patch and set the vst parameters with it.
     PluginPatch overridenPatch = getPatch();
     for (const auto& parameter : overridenPatch)
-        plugin->setParameter (parameter.first, parameter.second);
+        plugin->setParameter(parameter.first, parameter.second);
 
     // Get the note on midiBuffer.
     MidiMessage onMessage = MidiMessage::noteOn (1,
                                                  midiNote,
                                                  midiVelocity);
-    onMessage.setTimeStamp(0);
     MidiBuffer midiNoteBuffer;
-    midiNoteBuffer.addEvent (onMessage, onMessage.getTimeStamp());
+    midiNoteBuffer.addEvent (onMessage, 0);
 
     // Setup fft here so it is destroyed when rendering is finished and
     // the stack unwinds so it doesn't share frames with a new patch.
@@ -140,10 +136,14 @@ void RenderEngine::renderPatch (const uint8  midiNote,
     mfccFeatures.clear();
     mfccFeatures.reserve (numberOfFFT);
 
-    plugin->prepareToPlay (sampleRate, bufferSize);
+    plugin->prepareToPlay(sampleRate, bufferSize);
 
     for (int i = 0; i < numberOfBuffers; ++i)
     {
+        // Only trigger one note on during first audio buffer
+        if (i > 0)
+            midiNoteBuffer.clear();
+        
         // Trigger note off if in the correct audio buffer.
         ifTimeSetNoteOff (noteLength,
                           sampleRate,
@@ -155,7 +155,7 @@ void RenderEngine::renderPatch (const uint8  midiNote,
                           midiNoteBuffer);
 
         // Turn Midi to audio via the vst.
-        plugin->processBlock (audioBuffer, midiNoteBuffer);
+        plugin->processBlock(audioBuffer, midiNoteBuffer);
 
         // Get audio features and fill the datastructure.
         fillAudioFeatures (audioBuffer, fft);
@@ -169,7 +169,7 @@ void RenderEngine::renderWav(boost::python::object wav)
     // Get the overriden patch and set the vst parameters with it.
     PluginPatch overridenPatch = getPatch();
     for (const auto& parameter : overridenPatch)
-        plugin->setParameter (parameter.first, parameter.second);
+        plugin->setParameter(parameter.first, parameter.second);
 
     // empty MIDI note buffer
     MidiBuffer midiNoteBuffer;
@@ -200,7 +200,7 @@ void RenderEngine::renderWav(boost::python::object wav)
     //wav = wav.astype(np::dtype::get_builtin<double>());
     
 
-    plugin->prepareToPlay (sampleRate, bufferSize);
+    plugin->prepareToPlay(sampleRate, bufferSize);
 
     for (int i = 0; i < numberOfBuffers; ++i)
     {
@@ -219,7 +219,7 @@ void RenderEngine::renderWav(boost::python::object wav)
         }
         
         // Turn Midi to audio via the vst.
-        plugin->processBlock (audioBuffer, midiNoteBuffer);
+        plugin->processBlock(audioBuffer, midiNoteBuffer);
 
         // Get audio features and fill the datastructure.
         fillAudioFeatures (audioBuffer, fft);
@@ -286,18 +286,20 @@ void RenderEngine::ifTimeSetNoteOff (const double noteLength,
                                      MidiBuffer&  bufferToNoteOff)
 {
     double eventFrame = noteLength * sampleRate;
-    bool bufferBeginIsBeforeEvent = currentBufferIndex * bufferSize < eventFrame;
-    bool bufferEndIsAfterEvent = (currentBufferIndex + 1) * bufferSize >= eventFrame;
+    double bufferStartSample = currentBufferIndex * bufferSize;
+    
+    bool bufferBeginIsBeforeEvent = bufferStartSample < eventFrame;
+    bool bufferEndIsAfterEvent = bufferStartSample + bufferSize >= eventFrame;
     bool noteOffEvent = bufferBeginIsBeforeEvent && bufferEndIsAfterEvent;
+    
     if (noteOffEvent)
     {
-        MidiBuffer midiOffBuffer;
         MidiMessage offMessage = MidiMessage::noteOff (midiChannel,
                                                        midiPitch,
                                                        midiVelocity);
-        offMessage.setTimeStamp(eventFrame);
-        midiOffBuffer.addEvent(offMessage, offMessage.getTimeStamp());
-        bufferToNoteOff = midiOffBuffer;
+        
+        double samplesUntilNoteOff = eventFrame - bufferStartSample;
+        bufferToNoteOff.addEvent(offMessage, samplesUntilNoteOff);
     }
 }
 
@@ -419,9 +421,9 @@ void RenderEngine::fillAvailablePluginParameters (PluginPatch& params)
 }
 
 //==============================================================================
-ParameterNameList RenderEngine::getPluginParametersDescription()
+const String RenderEngine::getPluginParametersDescription()
 {
-    ParameterNameList namedParameters;
+    String parameterListString ("");
 
     if (plugin != nullptr)
     {
@@ -429,10 +431,24 @@ ParameterNameList RenderEngine::getPluginParametersDescription()
 
         for (const auto& pair : pluginParameters)
         {
-            namedParameters.push_back(std::make_pair(pair.first, plugin->getParameterName (pair.first).toStdString()));
+            ss << std::setw (3) << std::setfill (' ') << pair.first;
+
+            const String name = plugin->getParameterName(pair.first);
+            const String index (ss.str());
+
+            parameterListString = parameterListString +
+                                  index + ": " + name + ":" +
+                                  "\n";
+            ss.str ("");
+            ss.clear();
         }
     }
-    return namedParameters;
+    else
+    {
+        std::cout << "Please load the plugin first!" << std::endl;
+    }
+
+    return parameterListString;
 }
 
 //==============================================================================

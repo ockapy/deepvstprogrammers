@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -33,6 +32,8 @@ namespace juce
 
     @see MouseListener, Component::mouseMove, Component::mouseEnter, Component::mouseExit,
          Component::mouseDown, Component::mouseUp, Component::mouseDrag
+
+    @tags{GUI}
 */
 class JUCE_API  MouseEvent  final
 {
@@ -78,8 +79,11 @@ public:
                 int numberOfClicks,
                 bool mouseWasDragged) noexcept;
 
-    /** Destructor. */
-    ~MouseEvent() noexcept;
+    MouseEvent (const MouseEvent&) = default;
+    MouseEvent& operator= (const MouseEvent&) = delete;
+
+    MouseEvent (MouseEvent&&) = default;
+    MouseEvent& operator= (MouseEvent&&) = delete;
 
     //==============================================================================
     /** The position of the mouse when the event occurred.
@@ -147,6 +151,12 @@ public:
     */
     const float tiltY;
 
+    /** The coordinates of the last place that a mouse button was pressed.
+        The coordinates are relative to the component specified in MouseEvent::component.
+        @see getDistanceFromDragStart, getDistanceFromDragStartX, mouseWasDraggedSinceMouseDown
+    */
+    const Point<float> mouseDownPosition;
+
     /** The component that this event applies to.
 
         This is usually the component that the mouse was over at the time, but for mouse-drag
@@ -195,7 +205,8 @@ public:
 
     /** Returns the coordinates of the last place that a mouse was pressed.
         The coordinates are relative to the component specified in MouseEvent::component.
-        @see getDistanceFromDragStart, getDistanceFromDragStartX, mouseWasDraggedSinceMouseDown
+        For a floating point version of this value, see mouseDownPosition.
+        @see mouseDownPosition, getDistanceFromDragStart, getDistanceFromDragStartX, mouseWasDraggedSinceMouseDown
     */
     Point<int> getMouseDownPosition() const noexcept;
 
@@ -234,8 +245,8 @@ public:
 
         This is only meaningful if called in either a mouseUp() or mouseDrag() method.
 
-        It will return true if the user has dragged the mouse more than a few pixels
-        from the place where the mouse-down occurred.
+        It will return true if the user has dragged the mouse more than a few pixels from the place
+        where the mouse-down occurred or the mouse has been held down for a significant amount of time.
 
         Once they have dragged it far enough for this method to return true, it will continue
         to return true until the mouse-up, even if they move the mouse back to the same
@@ -365,10 +376,7 @@ public:
 
 private:
     //==============================================================================
-    const Point<float> mouseDownPos;
     const uint8 numberOfClicks, wasMovedSinceMouseDown;
-
-    MouseEvent& operator= (const MouseEvent&);
 };
 
 
@@ -377,6 +385,8 @@ private:
     Contains status information about a mouse wheel event.
 
     @see MouseListener, MouseEvent
+
+    @tags{GUI}
 */
 struct MouseWheelDetails  final
 {
@@ -407,7 +417,7 @@ struct MouseWheelDetails  final
     /** If true, then the wheel has continuous, un-stepped motion. */
     bool isSmooth;
 
-    /** If true, then this event is part of the intertial momentum phase that follows
+    /** If true, then this event is part of the inertial momentum phase that follows
         the wheel being released. */
     bool isInertial;
 };
@@ -417,6 +427,8 @@ struct MouseWheelDetails  final
     Contains status information about a pen event.
 
     @see MouseListener, MouseEvent
+
+    @tags{GUI}
 */
 struct PenDetails  final
 {

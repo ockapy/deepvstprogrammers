@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -35,6 +35,8 @@ namespace juce
     to control playback of an audio file.
 
     @see AudioSource, AudioSourcePlayer
+
+    @tags{Audio}
 */
 class JUCE_API  AudioTransportSource  : public PositionableAudioSource,
                                         public ChangeBroadcaster
@@ -47,7 +49,7 @@ public:
     AudioTransportSource();
 
     /** Destructor. */
-    ~AudioTransportSource();
+    ~AudioTransportSource() override;
 
     //==============================================================================
     /** Sets the reader that is being used as the input source.
@@ -85,11 +87,13 @@ public:
         The next time the getNextAudioBlock() method is called, this
         is the time from which it'll read data.
 
-        @see getPosition
+        @param newPosition    the new playback position in seconds
+
+        @see getCurrentPosition
     */
     void setPosition (double newPosition);
 
-    /** Returns the position that the next data block will be read from
+    /** Returns the position that the next data block will be read from.
         This is a time in seconds.
     */
     double getCurrentPosition() const;
@@ -98,7 +102,7 @@ public:
     double getLengthInSeconds() const;
 
     /** Returns true if the player has stopped because its input stream ran out of data. */
-    bool hasStreamFinished() const noexcept             { return inputStreamEOF; }
+    bool hasStreamFinished() const noexcept;
 
     //==============================================================================
     /** Starts playing (if a source has been selected).
@@ -162,11 +166,11 @@ private:
     AudioSource* masterSource = nullptr;
 
     CriticalSection callbackLock;
-    float volatile gain = 1.0f, lastGain = 1.0f;
-    bool volatile playing = false, stopped = true;
+    float gain = 1.0f, lastGain = 1.0f;
+    std::atomic<bool> playing { false }, stopped { true };
     double sampleRate = 44100.0, sourceSampleRate = 0;
     int blockSize = 128, readAheadBufferSize = 0;
-    bool volatile isPrepared = false, inputStreamEOF = false;
+    bool isPrepared = false;
 
     void releaseMasterResources();
 

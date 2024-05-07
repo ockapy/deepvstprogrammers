@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -38,13 +37,12 @@ ThreadWithProgressWindow::ThreadWithProgressWindow (const String& title,
      timeOutMsWhenCancelling (cancellingTimeOutMs),
      wasCancelledByUser (false)
 {
-    alertWindow = LookAndFeel::getDefaultLookAndFeel()
-                    .createAlertWindow (title, String(),
-                                        cancelButtonText.isEmpty() ? TRANS("Cancel")
-                                                                   : cancelButtonText,
-                                        String(), String(),
-                                        AlertWindow::NoIcon, hasCancelButton ? 1 : 0,
-                                        componentToCentreAround);
+    alertWindow.reset (LookAndFeel::getDefaultLookAndFeel()
+                           .createAlertWindow (title, {},
+                                               cancelButtonText.isEmpty() ? TRANS ("Cancel")
+                                                                          : cancelButtonText,
+                                               {}, {}, MessageBoxIconType::NoIcon, hasCancelButton ? 1 : 0,
+                                               componentToCentreAround));
 
     // if there are no buttons, we won't allow the user to interrupt the thread.
     alertWindow->setEscapeKeyCancels (false);
@@ -58,11 +56,11 @@ ThreadWithProgressWindow::~ThreadWithProgressWindow()
     stopThread (timeOutMsWhenCancelling);
 }
 
-void ThreadWithProgressWindow::launchThread (int priority)
+void ThreadWithProgressWindow::launchThread (Priority threadPriority)
 {
-    jassert (MessageManager::getInstance()->isThisTheMessageThread());
+    JUCE_ASSERT_MESSAGE_THREAD
 
-    startThread (priority);
+    startThread (threadPriority);
     startTimer (100);
 
     {
@@ -88,7 +86,7 @@ void ThreadWithProgressWindow::timerCallback()
 {
     bool threadStillRunning = isThreadRunning();
 
-    if (! (threadStillRunning && alertWindow->isCurrentlyModal()))
+    if (! (threadStillRunning && alertWindow->isCurrentlyModal (false)))
     {
         stopTimer();
         stopThread (timeOutMsWhenCancelling);
@@ -107,9 +105,9 @@ void ThreadWithProgressWindow::timerCallback()
 void ThreadWithProgressWindow::threadComplete (bool) {}
 
 #if JUCE_MODAL_LOOPS_PERMITTED
-bool ThreadWithProgressWindow::runThread (const int priority)
+bool ThreadWithProgressWindow::runThread (Priority threadPriority)
 {
-    launchThread (priority);
+    launchThread (threadPriority);
 
     while (isTimerRunning())
         MessageManager::getInstance()->runDispatchLoopUntil (5);

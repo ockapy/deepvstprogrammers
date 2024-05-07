@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -38,7 +37,7 @@ RelativePointPath::RelativePointPath (const RelativePointPath& other)
       containsDynamicPoints (false)
 {
     for (int i = 0; i < other.elements.size(); ++i)
-        elements.add (other.elements.getUnchecked(i)->clone());
+        elements.add (other.elements.getUnchecked (i)->clone());
 }
 
 RelativePointPath::RelativePointPath (const Path& path)
@@ -72,8 +71,8 @@ bool RelativePointPath::operator== (const RelativePointPath& other) const noexce
 
     for (int i = 0; i < elements.size(); ++i)
     {
-        ElementBase* const e1 = elements.getUnchecked(i);
-        ElementBase* const e2 = other.elements.getUnchecked(i);
+        ElementBase* const e1 = elements.getUnchecked (i);
+        ElementBase* const e2 = other.elements.getUnchecked (i);
 
         if (e1->type != e2->type)
             return false;
@@ -107,7 +106,7 @@ void RelativePointPath::swapWith (RelativePointPath& other) noexcept
 void RelativePointPath::createPath (Path& path, Expression::Scope* scope) const
 {
     for (int i = 0; i < elements.size(); ++i)
-        elements.getUnchecked(i)->addToPath (path, scope);
+        elements.getUnchecked (i)->addToPath (path, scope);
 }
 
 bool RelativePointPath::containsAnyDynamicPoints() const
@@ -147,13 +146,6 @@ RelativePointPath::StartSubPath::StartSubPath (const RelativePoint& pos)
 {
 }
 
-ValueTree RelativePointPath::StartSubPath::createTree() const
-{
-    ValueTree v (DrawablePath::ValueTreeWrapper::Element::startSubPathElement);
-    v.setProperty (DrawablePath::ValueTreeWrapper::point1, startPos.toString(), nullptr);
-    return v;
-}
-
 void RelativePointPath::StartSubPath::addToPath (Path& path, Expression::Scope* scope) const
 {
     path.startNewSubPath (startPos.resolve (scope));
@@ -174,11 +166,6 @@ RelativePointPath::ElementBase* RelativePointPath::StartSubPath::clone() const
 RelativePointPath::CloseSubPath::CloseSubPath()
     : ElementBase (closeSubPathElement)
 {
-}
-
-ValueTree RelativePointPath::CloseSubPath::createTree() const
-{
-    return ValueTree (DrawablePath::ValueTreeWrapper::Element::closeSubPathElement);
 }
 
 void RelativePointPath::CloseSubPath::addToPath (Path& path, Expression::Scope*) const
@@ -203,13 +190,6 @@ RelativePointPath::LineTo::LineTo (const RelativePoint& endPoint_)
 {
 }
 
-ValueTree RelativePointPath::LineTo::createTree() const
-{
-    ValueTree v (DrawablePath::ValueTreeWrapper::Element::lineToElement);
-    v.setProperty (DrawablePath::ValueTreeWrapper::point1, endPoint.toString(), nullptr);
-    return v;
-}
-
 void RelativePointPath::LineTo::addToPath (Path& path, Expression::Scope* scope) const
 {
     path.lineTo (endPoint.resolve (scope));
@@ -232,14 +212,6 @@ RelativePointPath::QuadraticTo::QuadraticTo (const RelativePoint& controlPoint, 
 {
     controlPoints[0] = controlPoint;
     controlPoints[1] = endPoint;
-}
-
-ValueTree RelativePointPath::QuadraticTo::createTree() const
-{
-    ValueTree v (DrawablePath::ValueTreeWrapper::Element::quadraticToElement);
-    v.setProperty (DrawablePath::ValueTreeWrapper::point1, controlPoints[0].toString(), nullptr);
-    v.setProperty (DrawablePath::ValueTreeWrapper::point2, controlPoints[1].toString(), nullptr);
-    return v;
 }
 
 void RelativePointPath::QuadraticTo::addToPath (Path& path, Expression::Scope* scope) const
@@ -267,15 +239,6 @@ RelativePointPath::CubicTo::CubicTo (const RelativePoint& controlPoint1, const R
     controlPoints[0] = controlPoint1;
     controlPoints[1] = controlPoint2;
     controlPoints[2] = endPoint;
-}
-
-ValueTree RelativePointPath::CubicTo::createTree() const
-{
-    ValueTree v (DrawablePath::ValueTreeWrapper::Element::cubicToElement);
-    v.setProperty (DrawablePath::ValueTreeWrapper::point1, controlPoints[0].toString(), nullptr);
-    v.setProperty (DrawablePath::ValueTreeWrapper::point2, controlPoints[1].toString(), nullptr);
-    v.setProperty (DrawablePath::ValueTreeWrapper::point3, controlPoints[2].toString(), nullptr);
-    return v;
 }
 
 void RelativePointPath::CubicTo::addToPath (Path& path, Expression::Scope* scope) const

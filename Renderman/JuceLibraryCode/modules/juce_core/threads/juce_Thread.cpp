@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -22,9 +22,9 @@
 
 namespace juce
 {
-
-Thread::Thread (const String& name, size_t stackSize)
-   : threadName (name), threadStackSize (stackSize)
+//==============================================================================
+Thread::Thread (const String& name, size_t stackSize) : threadName (name),
+                                                        threadStackSize (stackSize)
 {
 }
 
@@ -48,11 +48,11 @@ Thread::~Thread()
 //==============================================================================
 // Use a ref-counted object to hold this shared data, so that it can outlive its static
 // shared pointer when threads are still running during static shutdown.
-struct CurrentThreadHolder   : public ReferenceCountedObject
+struct CurrentThreadHolder final : public ReferenceCountedObject
 {
     CurrentThreadHolder() noexcept {}
 
-    typedef ReferenceCountedObjectPtr<CurrentThreadHolder> Ptr;
+    using Ptr = ReferenceCountedObjectPtr<CurrentThreadHolder>;
     ThreadLocalValue<Thread*> value;
 
     JUCE_DECLARE_NON_COPYABLE (CurrentThreadHolder)
@@ -84,6 +84,8 @@ void Thread::threadEntryPoint()
     if (threadName.isNotEmpty())
         setCurrentThreadName (threadName);
 
+    // This 'startSuspensionEvent' protects 'threadId' which is initialised after the platform's native 'CreateThread' method.
+    // This ensures it has been initialised correctly before it reaches this point.
     if (startSuspensionEvent.wait (10000))
     {
         jassert (getCurrentThreadId() == threadId);
@@ -102,9 +104,13 @@ void Thread::threadEntryPoint()
     }
 
     currentThreadHolder->value.releaseCurrentThreadStorage();
+
+    // Once closeThreadHandle is called this class may be deleted by a different
+    // thread, so we need to store deleteOnThreadEnd in a local variable.
+    auto shouldDeleteThis = deleteOnThreadEnd;
     closeThreadHandle();
 
-    if (deleteOnThreadEnd)
+    if (shouldDeleteThis)
         delete this;
 }
 
@@ -115,42 +121,60 @@ void JUCE_API juce_threadEntryPoint (void* userData)
 }
 
 //==============================================================================
-void Thread::startThread()
+bool Thread::startThreadInternal (Priority threadPriority)
 {
-    const ScopedLock sl (startStopLock);
-
     shouldExit = false;
 
-    if (threadHandle == nullptr)
+    // 'priority' is essentially useless on Linux as only realtime
+    // has any options but we need to set this here to satisfy
+    // later queries, otherwise we get inconsistent results across
+    // platforms.
+   #if JUCE_ANDROID || JUCE_LINUX || JUCE_BSD
+    priority = threadPriority;
+   #endif
+
+    if (createNativeThread (threadPriority))
     {
-        launchThread();
-        setThreadPriority (threadHandle, threadPriority);
         startSuspensionEvent.signal();
+        return true;
     }
+
+    return false;
 }
 
-void Thread::startThread (int priority)
+bool Thread::startThread()
+{
+    return startThread (Priority::normal);
+}
+
+bool Thread::startThread (Priority threadPriority)
 {
     const ScopedLock sl (startStopLock);
 
     if (threadHandle == nullptr)
     {
-        auto isRealtime = (priority == realtimeAudioPriority);
-
-       #if JUCE_ANDROID
-        isAndroidRealtimeThread = isRealtime;
-       #endif
-
-        if (isRealtime)
-            priority = 9;
-
-        threadPriority = priority;
-        startThread();
+        realtimeOptions.reset();
+        return startThreadInternal (threadPriority);
     }
-    else
+
+    return false;
+}
+
+bool Thread::startRealtimeThread (const RealtimeOptions& options)
+{
+    const ScopedLock sl (startStopLock);
+
+    if (threadHandle == nullptr)
     {
-        setPriority (priority);
+        realtimeOptions = std::make_optional (options);
+
+        if (startThreadInternal (Priority::normal))
+            return true;
+
+        realtimeOptions.reset();
     }
+
+    return false;
 }
 
 bool Thread::isThreadRunning() const
@@ -163,11 +187,21 @@ Thread* JUCE_CALLTYPE Thread::getCurrentThread()
     return getCurrentThreadHolder()->value.get();
 }
 
+Thread::ThreadID Thread::getThreadId() const noexcept
+{
+    return threadId;
+}
+
 //==============================================================================
 void Thread::signalThreadShouldExit()
 {
     shouldExit = true;
-    listeners.call (&Listener::exitSignalSent);
+    listeners.call ([] (Listener& l) { l.exitSignalSent(); });
+}
+
+bool Thread::threadShouldExit() const
+{
+    return shouldExit;
 }
 
 bool Thread::currentThreadShouldExit()
@@ -181,9 +215,9 @@ bool Thread::currentThreadShouldExit()
 bool Thread::waitForThreadToExit (const int timeOutMilliseconds) const
 {
     // Doh! So how exactly do you expect this thread to wait for itself to stop??
-    jassert (getThreadId() != getCurrentThreadId() || getCurrentThreadId() == 0);
+    jassert (getThreadId() != getCurrentThreadId() || getCurrentThreadId() == ThreadID());
 
-    const uint32 timeoutEnd = Time::getMillisecondCounter() + (uint32) timeOutMilliseconds;
+    auto timeoutEnd = Time::getMillisecondCounter() + (uint32) timeOutMilliseconds;
 
     while (isThreadRunning())
     {
@@ -222,7 +256,7 @@ bool Thread::stopThread (const int timeOutMilliseconds)
             killThread();
 
             threadHandle = nullptr;
-            threadId = 0;
+            threadId = {};
             return false;
         }
     }
@@ -240,41 +274,9 @@ void Thread::removeListener (Listener* listener)
     listeners.remove (listener);
 }
 
-//==============================================================================
-bool Thread::setPriority (int newPriority)
+bool Thread::isRealtime() const
 {
-    bool isRealtime = (newPriority == realtimeAudioPriority);
-
-    if (isRealtime)
-        newPriority = 9;
-
-    // NB: deadlock possible if you try to set the thread prio from the thread itself,
-    // so using setCurrentThreadPriority instead in that case.
-    if (getCurrentThreadId() == getThreadId())
-        return setCurrentThreadPriority (newPriority);
-
-    const ScopedLock sl (startStopLock);
-
-   #if JUCE_ANDROID
-    // you cannot switch from or to an Android realtime thread once the
-    // thread is already running!
-    jassert (isThreadRunning() && (isRealtime == isAndroidRealtimeThread));
-
-    isAndroidRealtimeThread = isRealtime;
-   #endif
-
-    if ((! isThreadRunning()) || setThreadPriority (threadHandle, newPriority))
-    {
-        threadPriority = newPriority;
-        return true;
-    }
-
-    return false;
-}
-
-bool Thread::setCurrentThreadPriority (const int newPriority)
-{
-    return setThreadPriority (0, newPriority);
+    return realtimeOptions.has_value();
 }
 
 void Thread::setAffinityMask (const uint32 newAffinityMask)
@@ -283,7 +285,7 @@ void Thread::setAffinityMask (const uint32 newAffinityMask)
 }
 
 //==============================================================================
-bool Thread::wait (const int timeOutMilliseconds) const
+bool Thread::wait (double timeOutMilliseconds) const
 {
     return defaultEvent.wait (timeOutMilliseconds);
 }
@@ -294,14 +296,14 @@ void Thread::notify() const
 }
 
 //==============================================================================
-struct LambdaThread  : public Thread
+struct LambdaThread final : public Thread
 {
-    LambdaThread (std::function<void()> f) : Thread ("anonymous"), fn (f) {}
+    LambdaThread (std::function<void()>&& f) : Thread ("anonymous"), fn (std::move (f)) {}
 
     void run() override
     {
         fn();
-        fn = {}; // free any objects that the lambda might contain while the thread is still active
+        fn = nullptr; // free any objects that the lambda might contain while the thread is still active
     }
 
     std::function<void()> fn;
@@ -309,11 +311,23 @@ struct LambdaThread  : public Thread
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LambdaThread)
 };
 
-void Thread::launch (std::function<void()> functionToRun)
+bool Thread::launch (std::function<void()> functionToRun)
 {
-    auto anon = new LambdaThread (functionToRun);
+    return launch (Priority::normal, std::move (functionToRun));
+}
+
+bool Thread::launch (Priority priority, std::function<void()> functionToRun)
+{
+    auto anon = std::make_unique<LambdaThread> (std::move (functionToRun));
     anon->deleteOnThreadEnd = true;
-    anon->startThread();
+
+    if (anon->startThread (priority))
+    {
+        anon.release();
+        return true;
+    }
+
+    return false;
 }
 
 //==============================================================================
@@ -336,26 +350,29 @@ bool JUCE_CALLTYPE Process::isRunningUnderDebugger() noexcept
     return juce_isRunningUnderDebugger();
 }
 
+//==============================================================================
+//==============================================================================
 #if JUCE_UNIT_TESTS
 
-//==============================================================================
-class AtomicTests  : public UnitTest
+class AtomicTests final : public UnitTest
 {
 public:
-    AtomicTests() : UnitTest ("Atomics", "Threads") {}
+    AtomicTests()
+        : UnitTest ("Atomics", UnitTestCategories::threads)
+    {}
 
     void runTest() override
     {
         beginTest ("Misc");
 
         char a1[7];
-        expect (numElementsInArray(a1) == 7);
+        expect (numElementsInArray (a1) == 7);
         int a2[3];
-        expect (numElementsInArray(a2) == 3);
+        expect (numElementsInArray (a2) == 3);
 
         expect (ByteOrder::swap ((uint16) 0x1122) == 0x2211);
         expect (ByteOrder::swap ((uint32) 0x11223344) == 0x44332211);
-        expect (ByteOrder::swap ((uint64) 0x1122334455667788ULL) == 0x8877665544332211LL);
+        expect (ByteOrder::swap ((uint64) 0x1122334455667788ULL) == (uint64) 0x8877665544332211LL);
 
         beginTest ("Atomic int");
         AtomicTester <int>::testInteger (*this);
@@ -400,7 +417,7 @@ public:
     class AtomicTester
     {
     public:
-        AtomicTester() {}
+        AtomicTester() = default;
 
         static void testInteger (UnitTest& test)
         {
@@ -443,17 +460,17 @@ public:
             /*  These are some simple test cases to check the atomics - let me know
                 if any of these assertions fail on your system!
             */
-            test.expect (a.get() == (Type) 101);
+            test.expect (exactlyEqual (a.get(), (Type) 101));
             test.expect (! a.compareAndSetBool ((Type) 300, (Type) 200));
-            test.expect (a.get() == (Type) 101);
+            test.expect (exactlyEqual (a.get(), (Type) 101));
             test.expect (a.compareAndSetBool ((Type) 200, a.get()));
-            test.expect (a.get() == (Type) 200);
+            test.expect (exactlyEqual (a.get(), (Type) 200));
 
-            test.expect (a.exchange ((Type) 300) == (Type) 200);
-            test.expect (a.get() == (Type) 300);
+            test.expect (exactlyEqual (a.exchange ((Type) 300), (Type) 200));
+            test.expect (exactlyEqual (a.get(), (Type) 300));
 
             b = a;
-            test.expect (b.get() == a.get());
+            test.expect (exactlyEqual (b.get(), a.get()));
         }
     };
 };
@@ -461,11 +478,12 @@ public:
 static AtomicTests atomicUnitTests;
 
 //==============================================================================
-class ThreadLocalValueUnitTest : public UnitTest, private Thread
+class ThreadLocalValueUnitTest final : public UnitTest,
+                                       private Thread
 {
 public:
     ThreadLocalValueUnitTest()
-        : UnitTest ("ThreadLocalValue", "Threads"),
+        : UnitTest ("ThreadLocalValue", UnitTestCategories::threads),
           Thread ("ThreadLocalValue Thread")
     {}
 

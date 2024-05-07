@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -32,17 +32,19 @@ namespace juce
     that has a current read position.
 
     @see AudioSource, AudioTransportSource
+
+    @tags{Audio}
 */
 class JUCE_API  PositionableAudioSource  : public AudioSource
 {
 protected:
     //==============================================================================
     /** Creates the PositionableAudioSource. */
-    PositionableAudioSource() noexcept  {}
+    PositionableAudioSource() = default;
 
 public:
     /** Destructor */
-    ~PositionableAudioSource()          {}
+    ~PositionableAudioSource() override = default;
 
     //==============================================================================
     /** Tells the stream to move to a new position.
@@ -68,7 +70,7 @@ public:
     virtual bool isLooping() const = 0;
 
     /** Tells the source whether you'd like it to play in a loop. */
-    virtual void setLooping (bool shouldLoop)       { ignoreUnused (shouldLoop); }
+    virtual void setLooping (bool shouldLoop);
 };
 
 } // namespace juce

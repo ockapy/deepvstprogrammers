@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -27,6 +27,8 @@ namespace juce
 /**
     A simple AudioSource that generates a sine wave.
 
+
+    @tags{Audio}
 */
 class JUCE_API  ToneGeneratorAudioSource  : public AudioSource
 {
@@ -36,7 +38,7 @@ public:
     ToneGeneratorAudioSource();
 
     /** Destructor. */
-    ~ToneGeneratorAudioSource();
+    ~ToneGeneratorAudioSource() override;
 
     //==============================================================================
     /** Sets the signal's amplitude. */

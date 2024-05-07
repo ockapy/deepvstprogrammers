@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -33,6 +33,8 @@ namespace juce
     An instance of a DynamicObject can be used to store named properties, and
     by subclassing hasMethod() and invokeMethod(), you can give your object
     methods.
+
+    @tags{Core}
 */
 class JUCE_API  DynamicObject  : public ReferenceCountedObject
 {
@@ -40,9 +42,9 @@ public:
     //==============================================================================
     DynamicObject();
     DynamicObject (const DynamicObject&);
-    ~DynamicObject();
+    ~DynamicObject() override;
 
-    typedef ReferenceCountedObjectPtr<DynamicObject> Ptr;
+    using Ptr = ReferenceCountedObjectPtr<DynamicObject>;
 
     //==============================================================================
     /** Returns true if the object has a property with this name.
@@ -76,7 +78,7 @@ public:
         call, then it invokes it.
 
         This method is virtual to allow more dynamic invocation to used for objects
-        where the methods may not already be set as properies.
+        where the methods may not already be set as properties.
     */
     virtual var invokeMethod (Identifier methodName,
                               const var::NativeFunctionArgs& args);
@@ -85,7 +87,7 @@ public:
 
         This is basically the same as calling setProperty (methodName, (var::NativeFunction) myFunction), but
         helps to avoid accidentally invoking the wrong type of var constructor. It also makes
-        the code easier to read,
+        the code easier to read.
     */
     void setMethod (Identifier methodName, var::NativeFunction function);
 
@@ -94,7 +96,10 @@ public:
     void clear();
 
     /** Returns the NamedValueSet that holds the object's properties. */
-    NamedValueSet& getProperties() noexcept     { return properties; }
+    NamedValueSet& getProperties() noexcept                 { return properties; }
+
+    /** Returns the NamedValueSet that holds the object's properties. */
+    const NamedValueSet& getProperties() const noexcept     { return properties; }
 
     /** Calls var::clone() on all the properties that this object contains. */
     void cloneAllProperties();
@@ -105,7 +110,7 @@ public:
         with a (deep) copy of all of its properties. Subclasses can override this to
         implement their own custom copy routines.
     */
-    virtual Ptr clone();
+    virtual std::unique_ptr<DynamicObject> clone() const;
 
     //==============================================================================
     /** Writes this object to a text stream in JSON format.
@@ -113,16 +118,11 @@ public:
         never need to call it directly, but it's virtual so that custom object types
         can stringify themselves appropriately.
     */
-    virtual void writeAsJSON (OutputStream&, int indentLevel, bool allOnOneLine, int maximumDecimalPlaces);
+    virtual void writeAsJSON (OutputStream&, const JSON::FormatOptions&);
 
 private:
     //==============================================================================
     NamedValueSet properties;
-
-   #if JUCE_CATCH_DEPRECATED_CODE_MISUSE
-    // This method has been deprecated - use var::invoke instead
-    virtual void invokeMethod (const Identifier&, const var*, int) {}
-   #endif
 
     JUCE_LEAK_DETECTOR (DynamicObject)
 };

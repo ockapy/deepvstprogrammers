@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -30,6 +30,8 @@ namespace juce
     Two processes can use NamedPipe objects to exchange blocks of data.
 
     @see InterprocessConnection
+
+    @tags{Core}
 */
 class JUCE_API  NamedPipe  final
 {
@@ -86,7 +88,7 @@ public:
 private:
     //==============================================================================
     JUCE_PUBLIC_IN_DLL_BUILD (class Pimpl)
-    ScopedPointer<Pimpl> pimpl;
+    std::unique_ptr<Pimpl> pimpl;
     String currentPipeName;
     ReadWriteLock lock;
 

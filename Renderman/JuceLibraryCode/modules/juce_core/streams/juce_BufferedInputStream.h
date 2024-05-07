@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -30,6 +30,8 @@ namespace juce
     small read accesses to it, it's probably sensible to wrap it in one of these,
     so that the source stream gets accessed in larger chunk sizes, meaning less
     work for the underlying stream.
+
+    @tags{Core}
 */
 class JUCE_API  BufferedInputStream  : public InputStream
 {
@@ -59,7 +61,7 @@ public:
         This may also delete the source stream, if that option was chosen when the
         buffered stream was created.
     */
-    ~BufferedInputStream();
+    ~BufferedInputStream() override;
 
 
     //==============================================================================
@@ -77,10 +79,10 @@ public:
 private:
     //==============================================================================
     OptionalScopedPointer<InputStream> source;
-    int bufferSize;
-    int64 position, lastReadPos = 0, bufferStart, bufferOverlap = 128;
+    Range<int64> bufferedRange;
+    int64 position, bufferLength, lastReadPos = 0, bufferOverlap = 128;
     HeapBlock<char> buffer;
-    void ensureBuffered();
+    bool ensureBuffered();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BufferedInputStream)
 };

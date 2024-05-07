@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -39,9 +38,9 @@ int TabBarButton::getIndex() const                      { return owner.indexOfTa
 Colour TabBarButton::getTabBackgroundColour() const     { return owner.getTabBackgroundColour (getIndex()); }
 bool TabBarButton::isFrontTab() const                   { return getToggleState(); }
 
-void TabBarButton::paintButton (Graphics& g, const bool isMouseOverButton, const bool isButtonDown)
+void TabBarButton::paintButton (Graphics& g, const bool shouldDrawButtonAsHighlighted, const bool shouldDrawButtonAsDown)
 {
-    getLookAndFeel().drawTabButton (*this, g, isMouseOverButton, isButtonDown);
+    getLookAndFeel().drawTabButton (*this, g, shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
 }
 
 void TabBarButton::clicked (const ModifierKeys& mods)
@@ -145,13 +144,14 @@ void TabBarButton::setExtraComponent (Component* comp, ExtraComponentPlacement p
 {
     jassert (extraCompPlacement == beforeText || extraCompPlacement == afterText);
     extraCompPlacement = placement;
-    addAndMakeVisible (extraComponent = comp);
+    extraComponent.reset (comp);
+    addAndMakeVisible (extraComponent.get());
     resized();
 }
 
 void TabBarButton::childBoundsChanged (Component* c)
 {
-    if (c == extraComponent)
+    if (c == extraComponent.get())
     {
         owner.resized();
         resized();
@@ -171,8 +171,7 @@ void TabBarButton::resized()
 }
 
 //==============================================================================
-class TabbedButtonBar::BehindFrontTabComp  : public Component,
-                                             public Button::Listener
+class TabbedButtonBar::BehindFrontTabComp final : public Component
 {
 public:
     BehindFrontTabComp (TabbedButtonBar& tb)  : owner (tb)
@@ -190,12 +189,6 @@ public:
         repaint();
     }
 
-    void buttonClicked (Button*) override
-    {
-        owner.showExtraItemsMenu();
-    }
-
-private:
     TabbedButtonBar& owner;
 
     JUCE_DECLARE_NON_COPYABLE (BehindFrontTabComp)
@@ -207,14 +200,15 @@ TabbedButtonBar::TabbedButtonBar (Orientation orientationToUse)
     : orientation (orientationToUse)
 {
     setInterceptsMouseClicks (false, true);
-    addAndMakeVisible (behindFrontTab = new BehindFrontTabComp (*this));
-    setFocusContainer (true);
+    behindFrontTab.reset (new BehindFrontTabComp (*this));
+    addAndMakeVisible (behindFrontTab.get());
+    setFocusContainerType (FocusContainerType::keyboardFocusContainer);
 }
 
 TabbedButtonBar::~TabbedButtonBar()
 {
     tabs.clear();
-    extraTabsButton = nullptr;
+    extraTabsButton.reset();
 }
 
 //==============================================================================
@@ -243,7 +237,7 @@ void TabbedButtonBar::setMinimumTabScaleFactor (double newMinimumScale)
 void TabbedButtonBar::clearTabs()
 {
     tabs.clear();
-    extraTabsButton = nullptr;
+    extraTabsButton.reset();
     setCurrentTabIndex (-1);
 }
 
@@ -263,12 +257,12 @@ void TabbedButtonBar::addTab (const String& tabName,
         auto* newTab = new TabInfo();
         newTab->name = tabName;
         newTab->colour = tabBackgroundColour;
-        newTab->button = createTabButton (tabName, insertIndex);
+        newTab->button.reset (createTabButton (tabName, insertIndex));
         jassert (newTab->button != nullptr);
 
         tabs.insert (insertIndex, newTab);
         currentTabIndex = tabs.indexOf (currentTab);
-        addAndMakeVisible (newTab->button, insertIndex);
+        addAndMakeVisible (newTab->button.get(), insertIndex);
 
         resized();
 
@@ -349,7 +343,7 @@ void TabbedButtonBar::setCurrentTabIndex (int newIndex, bool shouldSendChangeMes
         currentTabIndex = newIndex;
 
         for (int i = 0; i < tabs.size(); ++i)
-            tabs.getUnchecked(i)->button->setToggleState (i == newIndex, dontSendNotification);
+            tabs.getUnchecked (i)->button->setToggleState (i == newIndex, dontSendNotification);
 
         resized();
 
@@ -363,7 +357,7 @@ void TabbedButtonBar::setCurrentTabIndex (int newIndex, bool shouldSendChangeMes
 TabBarButton* TabbedButtonBar::getTabButton (const int index) const
 {
     if (auto* tab = tabs[index])
-        return static_cast<TabBarButton*> (tab->button);
+        return static_cast<TabBarButton*> (tab->button.get());
 
     return nullptr;
 }
@@ -371,7 +365,7 @@ TabBarButton* TabbedButtonBar::getTabButton (const int index) const
 int TabbedButtonBar::indexOfTabButton (const TabBarButton* button) const
 {
     for (int i = tabs.size(); --i >= 0;)
-        if (tabs.getUnchecked(i)->button == button)
+        if (tabs.getUnchecked (i)->button.get() == button)
             return i;
 
     return -1;
@@ -390,7 +384,7 @@ Rectangle<int> TabbedButtonBar::getTargetBounds (TabBarButton* button) const
 
 void TabbedButtonBar::lookAndFeelChanged()
 {
-    extraTabsButton = nullptr;
+    extraTabsButton.reset();
     resized();
 }
 
@@ -422,7 +416,7 @@ void TabbedButtonBar::updateTabPositions (bool animate)
 
     for (int i = 0; i < tabs.size(); ++i)
     {
-        auto* tb = tabs.getUnchecked(i)->button.get();
+        auto* tb = tabs.getUnchecked (i)->button.get();
 
         totalLength += tb->getBestTabLength (depth) - overlap;
         tb->overlapPixels = jmax (0, overlap / 2);
@@ -440,10 +434,11 @@ void TabbedButtonBar::updateTabPositions (bool animate)
     {
         if (extraTabsButton == nullptr)
         {
-            addAndMakeVisible (extraTabsButton = lf.createTabBarExtrasButton());
-            extraTabsButton->addListener (behindFrontTab);
+            extraTabsButton.reset (lf.createTabBarExtrasButton());
+            addAndMakeVisible (extraTabsButton.get());
             extraTabsButton->setAlwaysOnTop (true);
             extraTabsButton->setTriggeredOnMouseDown (true);
+            extraTabsButton->onClick = [this] { showExtraItemsMenu(); };
         }
 
         auto buttonSize = jmin (proportionOfWidth (0.7f), proportionOfHeight (0.7f));
@@ -464,7 +459,7 @@ void TabbedButtonBar::updateTabPositions (bool animate)
 
         for (int i = 0; i < tabs.size(); ++i)
         {
-            auto* tb = tabs.getUnchecked(i)->button.get();
+            auto* tb = tabs.getUnchecked (i)->button.get();
             auto newLength = totalLength + tb->getBestTabLength (depth);
 
             if (i > 0 && newLength * minimumScale > tabsButtonPos)
@@ -481,7 +476,7 @@ void TabbedButtonBar::updateTabPositions (bool animate)
     }
     else
     {
-        extraTabsButton = nullptr;
+        extraTabsButton.reset();
     }
 
     int pos = 0;
@@ -556,30 +551,33 @@ void TabbedButtonBar::setTabBackgroundColour (int tabIndex, Colour newColour)
     }
 }
 
-void TabbedButtonBar::extraItemsMenuCallback (int result, TabbedButtonBar* bar)
-{
-    if (bar != nullptr && result > 0)
-        bar->setCurrentTabIndex (result - 1);
-}
-
 void TabbedButtonBar::showExtraItemsMenu()
 {
     PopupMenu m;
 
     for (int i = 0; i < tabs.size(); ++i)
     {
-        auto* tab = tabs.getUnchecked(i);
+        auto* tab = tabs.getUnchecked (i);
 
         if (! tab->button->isVisible())
-            m.addItem (i + 1, tab->name, true, i == currentTabIndex);
+            m.addItem (PopupMenu::Item (tab->name)
+                         .setTicked (i == currentTabIndex)
+                         .setAction ([this, i] { setCurrentTabIndex (i); }));
     }
 
-    m.showMenuAsync (PopupMenu::Options().withTargetComponent (extraTabsButton),
-                     ModalCallbackFunction::forComponent (extraItemsMenuCallback, this));
+    m.showMenuAsync (PopupMenu::Options()
+                        .withDeletionCheck (*this)
+                        .withTargetComponent (extraTabsButton.get()));
 }
 
 //==============================================================================
 void TabbedButtonBar::currentTabChanged (int, const String&) {}
 void TabbedButtonBar::popupMenuClickOnTab (int, const String&) {}
+
+//==============================================================================
+std::unique_ptr<AccessibilityHandler> TabbedButtonBar::createAccessibilityHandler()
+{
+    return std::make_unique<AccessibilityHandler> (*this, AccessibilityRole::group);
+}
 
 } // namespace juce

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -26,11 +26,16 @@ namespace juce
 //==============================================================================
 /**
     Represents a MAC network card adapter address ID.
+
+    @tags{Core}
 */
 class JUCE_API  MACAddress  final
 {
 public:
     //==============================================================================
+    /** Returns a list of the MAC addresses of all the available network cards. */
+    static Array<MACAddress> getAllAddresses();
+
     /** Populates a list of the MAC addresses of all the available network cards. */
     static void findAllAddresses (Array<MACAddress>& results);
 

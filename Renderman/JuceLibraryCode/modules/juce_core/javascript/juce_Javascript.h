@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -41,6 +41,8 @@ namespace juce
     and var objects, they use reference-counting rather than garbage-collection, so if your
     script creates complex connections between objects, you run the risk of creating cyclic
     dependencies and hence leaking.
+
+    @tags{Core}
 */
 class JUCE_API  JavascriptEngine  final
 {

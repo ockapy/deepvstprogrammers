@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -29,6 +29,8 @@ namespace juce
     This class can be used to open a DLL and get some function pointers from it.
     Since the DLL is freed when this object is deleted, it's handy for managing
     library lifetimes using RAII.
+
+    @tags{Core}
 */
 class JUCE_API  DynamicLibrary
 {
@@ -36,7 +38,7 @@ public:
     /** Creates an unopened DynamicLibrary object.
         Call open() to actually open one.
     */
-    DynamicLibrary() noexcept {}
+    DynamicLibrary() = default;
 
     /**
     */

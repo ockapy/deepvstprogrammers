@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -27,11 +27,6 @@ ResamplingAudioSource::ResamplingAudioSource (AudioSource* const inputSource,
                                               const bool deleteInputWhenDeleted,
                                               const int channels)
     : input (inputSource, deleteInputWhenDeleted),
-      ratio (1.0),
-      lastRatio (1.0),
-      bufferPos (0),
-      sampsInBuffer (0),
-      subSampleOffset (0),
       numChannels (channels)
 {
     jassert (input != nullptr);
@@ -67,6 +62,8 @@ void ResamplingAudioSource::prepareToPlay (int samplesPerBlockExpected, double s
 
 void ResamplingAudioSource::flushBuffers()
 {
+    const ScopedLock sl (callbackLock);
+
     buffer.clear();
     bufferPos = 0;
     sampsInBuffer = 0;
@@ -82,14 +79,16 @@ void ResamplingAudioSource::releaseResources()
 
 void ResamplingAudioSource::getNextAudioBlock (const AudioSourceChannelInfo& info)
 {
+    const ScopedLock sl (callbackLock);
+
     double localRatio;
 
     {
-        const SpinLock::ScopedLockType sl (ratioLock);
+        const SpinLock::ScopedLockType ratioSl (ratioLock);
         localRatio = ratio;
     }
 
-    if (lastRatio != localRatio)
+    if (! approximatelyEqual (lastRatio, localRatio))
     {
         createLowPass (localRatio);
         lastRatio = localRatio;
@@ -201,16 +200,16 @@ void ResamplingAudioSource::createLowPass (const double frequencyRatio)
     const double proportionalRate = (frequencyRatio > 1.0) ? 0.5 / frequencyRatio
                                                            : 0.5 * frequencyRatio;
 
-    const double n = 1.0 / std::tan (double_Pi * jmax (0.001, proportionalRate));
+    const double n = 1.0 / std::tan (MathConstants<double>::pi * jmax (0.001, proportionalRate));
     const double nSquared = n * n;
-    const double c1 = 1.0 / (1.0 + std::sqrt (2.0) * n + nSquared);
+    const double c1 = 1.0 / (1.0 + MathConstants<double>::sqrt2 * n + nSquared);
 
     setFilterCoefficients (c1,
                            c1 * 2.0f,
                            c1,
                            1.0,
                            c1 * 2.0 * (1.0 - nSquared),
-                           c1 * (1.0 - std::sqrt (2.0) * n + nSquared));
+                           c1 * (1.0 - MathConstants<double>::sqrt2 * n + nSquared));
 }
 
 void ResamplingAudioSource::setFilterCoefficients (double c1, double c2, double c3, double c4, double c5, double c6)

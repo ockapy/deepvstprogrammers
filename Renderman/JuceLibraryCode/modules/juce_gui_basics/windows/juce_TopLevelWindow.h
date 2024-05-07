@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -48,6 +47,8 @@ namespace juce
     A top-level window also has an optional drop-shadow.
 
     @see ResizableWindow, DocumentWindow, DialogWindow
+
+    @tags{GUI}
 */
 class JUCE_API  TopLevelWindow  : public Component
 {
@@ -62,7 +63,7 @@ public:
     TopLevelWindow (const String& name, bool addToDesktop);
 
     /** Destructor. */
-    ~TopLevelWindow();
+    ~TopLevelWindow() override;
 
     //==============================================================================
     /** True if this is currently the TopLevelWindow that is actively being used.
@@ -97,7 +98,7 @@ public:
     /** True if drop-shadowing is enabled. */
     bool isDropShadowEnabled() const noexcept               { return useDropShadow; }
 
-    /** Sets whether an OS-native title bar will be used, or a Juce one.
+    /** Sets whether an OS-native title bar will be used, or a JUCE one.
         @see isUsingNativeTitleBar
     */
     void setUsingNativeTitleBar (bool useNativeTitleBar);
@@ -129,6 +130,8 @@ public:
     //==============================================================================
     /** @internal */
     void addToDesktop (int windowStyleFlags, void* nativeWindowToAttachTo = nullptr) override;
+    /** @internal */
+    std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
 
 protected:
     //==============================================================================
@@ -151,10 +154,10 @@ protected:
     void visibilityChanged() override;
 
 private:
-    friend class TopLevelWindowManager;
+    friend class detail::TopLevelWindowManager;
     friend class ResizableWindow;
     bool useDropShadow = true, useNativeTitleBar = false, isCurrentlyActive = false;
-    ScopedPointer<DropShadower> shadower;
+    std::unique_ptr<DropShadower> shadower;
 
     void setWindowActive (bool);
 

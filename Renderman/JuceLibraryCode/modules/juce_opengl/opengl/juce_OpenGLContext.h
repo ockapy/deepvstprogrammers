@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -44,6 +43,8 @@ class OpenGLTexture;
     stop and the native resources to be freed safely.
 
     @see OpenGLRenderer
+
+    @tags{OpenGL}
 */
 class JUCE_API  OpenGLContext
 {
@@ -129,11 +130,25 @@ public:
     /** Returns true if shaders can be used in this context. */
     bool areShadersAvailable() const;
 
-    /** OpenGL versions, used by setOpenGLVersionRequired(). */
+    /** Returns true if non-power-of-two textures are supported in this context. */
+    bool isTextureNpotSupported() const;
+
+    /** OpenGL versions, used by setOpenGLVersionRequired().
+
+        The Core profile doesn't include some legacy functionality, including the
+        fixed-function pipeline.
+
+        The Compatibility profile is backwards-compatible, and includes functionality
+        deprecated in the Core profile. However, not all implementations provide
+        compatibility profiles targeting later versions of OpenGL. To run on the
+        broadest range of hardware, using the 3.2 Core profile is recommended.
+    */
     enum OpenGLVersion
     {
-        defaultGLVersion = 0,
-        openGL3_2
+        defaultGLVersion = 0, ///< Whatever the device decides to give us, normally a compatibility profile
+        openGL3_2,            ///< 3.2 Core profile
+        openGL4_1,            ///< 4.1 Core profile, the latest supported by macOS at time of writing
+        openGL4_3             ///< 4.3 Core profile, will enable improved debugging support when building in Debug
     };
 
     /** Sets a preference for the version of GL that this context should use, if possible.
@@ -246,7 +261,7 @@ public:
         This function can only be called if the context is attached to a component.
         Otherwise, this function will assert.
 
-        This function is useful when you need to excute house-keeping tasks such
+        This function is useful when you need to execute house-keeping tasks such
         as allocating, deallocating textures or framebuffers. As such, the functor
         will execute without locking the message thread. Therefore, it is not
         intended for any drawing commands or GUI code. Any GUI code should be
@@ -256,9 +271,12 @@ public:
     void executeOnGLThread (T&& functor, bool blockUntilFinished);
 
     //==============================================================================
-    /** Returns the scale factor used by the display that is being rendered.
+    /** Returns a scale factor that relates the context component's size to the number
+        of physical pixels it covers on the screen.
 
-        The scale is that of the display - see Desktop::Displays::Display::scale
+        In special cases it will be the same as Displays::Display::scale, but it also
+        includes AffineTransforms that affect the rendered area, and will be correctly
+        reported not just in standalone applications but plugins as well.
 
         Note that this should only be called during an OpenGLRenderer::renderOpenGL()
         callback - at other times the value it returns is undefined.
@@ -271,13 +289,19 @@ public:
     */
     unsigned int getFrameBufferID() const noexcept;
 
-    /** Returns an OS-dependent handle to some kind of underlting OS-provided GL context.
+    /** Returns an OS-dependent handle to some kind of underlying OS-provided GL context.
 
         The exact type of the value returned will depend on the OS and may change
         if the implementation changes. If you want to use this, digging around in the
         native code is probably the best way to find out what it is.
     */
     void* getRawContext() const noexcept;
+
+    /** Returns true if this context is using the core profile.
+
+        @see OpenGLVersion
+    */
+    bool isCoreProfile() const;
 
     /** This structure holds a set of dynamically loaded GL functions for use on this context. */
     OpenGLExtensionFunctions extensions;
@@ -314,6 +338,13 @@ public:
    #endif
 
 private:
+    enum class InitResult
+    {
+        fatal,
+        retry,
+        success
+    };
+
     friend class OpenGLTexture;
 
     class CachedImage;
@@ -321,20 +352,21 @@ private:
     NativeContext* nativeContext = nullptr;
     OpenGLRenderer* renderer = nullptr;
     double currentRenderScale = 1.0;
-    ScopedPointer<Attachment> attachment;
+    std::unique_ptr<Attachment> attachment;
     OpenGLPixelFormat openGLPixelFormat;
     void* contextToShareWith = nullptr;
     OpenGLVersion versionRequired = defaultGLVersion;
     size_t imageCacheMaxSize = 8 * 1024 * 1024;
-    bool renderComponents = true, useMultisampling = false, continuousRepaint = false, overrideCanAttach = false;
+    bool renderComponents = true, useMultisampling = false, overrideCanAttach = false;
+    std::atomic<bool> continuousRepaint { false };
     TextureMagnificationFilter texMagFilter = linear;
 
     //==============================================================================
     struct AsyncWorker  : public ReferenceCountedObject
     {
-        typedef ReferenceCountedObjectPtr<AsyncWorker> Ptr;
+        using Ptr = ReferenceCountedObjectPtr<AsyncWorker>;
         virtual void operator() (OpenGLContext&) = 0;
-        virtual ~AsyncWorker() {}
+        ~AsyncWorker() override = default;
     };
 
     template <typename FunctionType>
@@ -346,10 +378,6 @@ private:
 
         JUCE_DECLARE_NON_COPYABLE (AsyncWorkerFunctor)
     };
-
-    //==============================================================================
-    friend void componentPeerAboutToChange (Component&, bool);
-    void overrideCanBeAttached (bool);
 
     //==============================================================================
     CachedImage* getCachedImage() const noexcept;
