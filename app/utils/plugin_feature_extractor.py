@@ -81,7 +81,7 @@ class PluginFeatureExtractor:
         if plugin_path == "":
             print ("Please supply a non-empty path")
             return
-        if self.engine.load_plugin(plugin_path,0):
+        if self.engine.load_plugin(plugin_path):
             self.loaded_plugin = True
             self.generator = rm.PatchGenerator(self.engine)
             for i in range(len(self.overriden_parameters)):

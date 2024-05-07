@@ -33,10 +33,10 @@
                extraCompilerFlags="-fPIC">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="librenderman.so"
-                       osxCompatibility="10.9 SDK" osxArchitecture="Native" headerPath="/usr/include/python2.7&#10;/usr/local/include&#10;"
+                       osxCompatibility="10.9 SDK" osxArchitecture="Native" headerPath="/usr/include/python3.9&#10;/usr/local/include&#10;"
                        libraryPath="/usr/local/lib" enablePluginBinaryCopyStep="1" macOSDeploymentTarget="10.9"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="librenderman.so"
-                       osxCompatibility="10.9 SDK" osxArchitecture="Native" headerPath="/usr/include/python2.7&#10;/usr/local/include&#10;"
+                       osxCompatibility="10.9 SDK" osxArchitecture="Native" headerPath="/usr/include/python3.9&#10;/usr/local/include&#10;"
                        libraryPath="/usr/local/lib" enablePluginBinaryCopyStep="1" macOSDeploymentTarget="10.9"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
