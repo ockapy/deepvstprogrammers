@@ -1,9 +1,14 @@
 import tkinter as tk
-from tkinter import ttk
 import subprocess
 import os
+from tkinter import ttk
+from threading import Thread
 
 def run_algorithm():
+    
+    script_command = ""
+    test_size = ""
+    
     algorithm = algorithm_var.get()
     test_size = test_size_var.get()
     script_path = os.path.dirname(__file__)
@@ -15,8 +20,6 @@ def run_algorithm():
     # elif algorithm == "Algorithm 3":
     #     script_path = "algorithm3.py"
     
-    script_command = ""
-    test_size = ""
     
     # Add test size as an argument if needed
     if test_size == "Petit":

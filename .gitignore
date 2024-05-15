@@ -10,4 +10,4 @@ Renderman/Builds/VisualStudio2022/.vs/
 app/utils/librenderman.pyd
 app/__pycache__
 Renderman/JuceLibraryCode
-app/models/hill_climber/__pycache__
+app/models/hill_climber/__pycache__/
