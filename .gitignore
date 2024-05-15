@@ -8,4 +8,6 @@ app/stats
 Renderman/Builds/VisualStudio2022/x64
 Renderman/Builds/VisualStudio2022/.vs/
 app/utils/librenderman.pyd
-app/__pycache__/
+app/__pycache__
+Renderman/JuceLibraryCode
+app/models/hill_climber/__pycache__

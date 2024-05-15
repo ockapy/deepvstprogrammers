@@ -26,8 +26,18 @@ samplesCount = 0
 if(arg == "--small"):
     normalisers_size = 100
     test_size = 1
-    iteration = 1
+    iterations = 1
     samplesCount = 10
+elif(arg == "--medium"):
+    normalisers_size = 500
+    test_size = 10
+    iterations = 10
+    samplesCount = 50
+elif(arg == "--large"):
+    normalisers_size = 1000
+    test_size = 50
+    iterations = 50
+    samplesCount = 100
 
 
 
