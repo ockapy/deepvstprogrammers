@@ -8,3 +8,4 @@ app/stats
 Renderman/Builds/VisualStudio2022/x64
 Renderman/Builds/VisualStudio2022/.vs/
 app/utils/librenderman.pyd
+app/__pycache__/

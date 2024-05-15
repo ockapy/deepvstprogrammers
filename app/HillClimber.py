@@ -1,44 +1,75 @@
 import sys
 import os
-import pickle
-import warnings
-import matplotlib.pyplot as plt
-import scipy
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 dir = os.path.dirname(__file__)
 
+import pickle
+import warnings
+import matplotlib.pyplot as plt
+import scipy
+import numpy as np
+import data_set_generator as generator
+
 from models.hill_climber.hill_climber import HillClimber
 from utils.plugin_feature_extractor import PluginFeatureExtractor
-import numpy as np
-from utils.utility_functions import get_batches, get_stats, display_stats, plot_error, write_wavs
+from utils.utility_functions import get_stats
 from tqdm import trange
 
+arg = sys.argv[1]
+
+test_size = 0
+iterations = 0
+normalisers_size = 0
+samplesCount = 0
+
+if(arg == "--small"):
+    normalisers_size = 100
+    test_size = 1
+    iteration = 1
+    samplesCount = 10
+
+
+
 with warnings.catch_warnings():
-    # Load VST.
+    
+    
+    
+    # Chargement du VST.
     operator_folder = ""
     data_folder = dir+"/data/dataset/"
-    desired_features = [0,1,6]
+    
+    desired_features = [0,1,6] # A Determiner
     desired_features.extend([i for i in range(len(desired_features), 21)])
-    overriden_parameters = np.load(data_folder+"overriden_parameters.npy").tolist()
-    extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=3.0,
+    
+    algorithm_number = 1
+    # Works:  1-15
+    # Bleh:  16-19
+    # Works: 20-32
+    alg = (1.0 / 32.0) * float(algorithm_number - 1) + 0.001
+    
+    overriden_parameters = [(0, 1.0), (1, 0.0), (2, 1.0), (3, 0.0), (4, alg), (6,0.0), # PARAMETRES GENERAUX
+                            (7,0.0), (8,0.0), (9,0.0), (10,0.), (11,0.0), (12,0.0), # PARAMETRES LFO
+                            (15,1.),(16,1.),(17,1.), (18,1.),(19,0.5),(20,0.5),(21,0.5),(22,0.5), # PITCH EG RATE ET LEVEL
+                            (29,1.),(51,1.),(73,1.),(95,1.),(117,1.),(139,1.), # EG LEVELS
+                            (26, 1.),  (30, 0.),  (48, 1.),  (52, 0.),  # ASSURE QUE CHAQUE NOTE SE TERMINE
+                            (70, 1.),  (74, 0.),  (92, 1.),  (96, 0.), 
+                            (114, 1.), (118, 0.), (136, 1.), (140, 0.)]
+    
+    extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=2.0,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
-                                   render_length_secs=4.0,
+                                   render_length_secs=3.0,
                                    pickle_path=dir+"/utils/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
     path = dir+"/VST/Dexed.dll"
     extractor.load_plugin(path)
+    
+    generator.generate_data(extractor,normalisers_size,samplesCount)
 
-    if extractor.need_to_fit_normalisers():
-        extractor.fit_normalisers(2000000)
 
     # Get training and testing batch.
-    nn_train_pass = 20
-    test_size = 1
-    train_size = 1
-    iterations = 1
     train_x = np.load(data_folder + "train_x.npy")
     train_y = np.load(data_folder + "train_y.npy")
     test_x = np.load(data_folder + "test_x.npy")[0:test_size]
