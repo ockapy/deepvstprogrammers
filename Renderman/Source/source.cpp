@@ -178,8 +178,8 @@ namespace wrap
 
             boost::python::dict out;
             int index = 0;
-            for (const auto& pluginDescription : pluginList) {
-                out[pluginDescription->name.toStdString()] = index;
+            for (const auto& pluginDescription : pluginList.getTypes()) {
+                out[pluginDescription.name.toStdString()] = index;
                 index++;
             }
             return out;

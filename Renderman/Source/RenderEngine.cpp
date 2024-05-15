@@ -104,7 +104,7 @@ void RenderEngine::renderPatch (const uint8  midiNote,
     // Get the overriden patch and set the vst parameters with it.
     PluginPatch overridenPatch = getPatch();
     for (const auto& parameter : overridenPatch)
-        plugin->setParameter(parameter.first, parameter.second);
+        plugin->getHostedParameter(parameter.first)->setValue(parameter.second);
 
     // Get the note on midiBuffer.
     MidiMessage onMessage = MidiMessage::noteOn (1,
@@ -169,7 +169,7 @@ void RenderEngine::renderWav(boost::python::object wav)
     // Get the overriden patch and set the vst parameters with it.
     PluginPatch overridenPatch = getPatch();
     for (const auto& parameter : overridenPatch)
-        plugin->setParameter(parameter.first, parameter.second);
+        plugin->getHostedParameter(parameter.first)->setValue(parameter.second);
 
     // empty MIDI note buffer
     MidiBuffer midiNoteBuffer;
@@ -405,13 +405,13 @@ bool RenderEngine::removeOverridenParameter (const int index)
 void RenderEngine::fillAvailablePluginParameters (PluginPatch& params)
 {
     params.clear();
-    params.reserve (plugin->getNumParameters());
+    params.reserve (plugin->getParameters().size());
 
     int usedParameterAmount = 0;
-    for (int i = 0; i < plugin->getNumParameters(); ++i)
+    for (int i = 0; i < plugin->getParameters().size(); ++i)
     {
         // Ensure the parameter is not unused.
-        if (plugin->getParameterName(i) != "Param")
+        if (plugin->getHostedParameter(i)->getName(20) != "Param")
         {
             ++usedParameterAmount;
             params.push_back (std::make_pair (i, 0.0f));
@@ -433,7 +433,7 @@ const String RenderEngine::getPluginParametersDescription()
         {
             ss << std::setw (3) << std::setfill (' ') << pair.first;
 
-            const String name = plugin->getParameterName(pair.first);
+            const String name = plugin->getHostedParameter(pair.first)->getName(20);
             const String index (ss.str());
 
             parameterListString = parameterListString +

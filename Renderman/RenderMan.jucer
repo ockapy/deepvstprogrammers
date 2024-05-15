@@ -84,7 +84,9 @@
         <CONFIGURATION isDebug="1" name="Debug" headerPath="C:\Boost\include\boost-1_85&#10;C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python39_64\include"
                        libraryPath="C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python39_64\libs&#10;C:\Boost\lib"
                        targetName="RenderMan" defines="BOOST_PYTHON_STATIC_LIB"/>
-        <CONFIGURATION isDebug="0" name="Release"/>
+        <CONFIGURATION isDebug="0" name="Release" headerPath="C:\Boost\include\boost-1_85&#10;C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python39_64\include"
+                       libraryPath="C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python39_64\libs&#10;C:\Boost\lib"
+                       defines="BOOST_PYTHON_STATIC_LIB"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../../../../Downloads/juce-7.0.12-windows/JUCE/modules"/>
