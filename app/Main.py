@@ -2,7 +2,35 @@ import tkinter as tk
 import subprocess
 import os
 from tkinter import ttk
-from threading import Thread
+from functools import partial
+
+row = 3
+
+def destroy_process(self,text,progress_bar,process):
+    text.destroy()
+    progress_bar.destroy()
+    process.kill()
+    self.destroy()
+
+def start_new_process(command,algo,size):
+    global row
+    
+    process = subprocess.Popen(command)
+    
+    text = ttk.Label(root,text=size+" "+algo)
+    text.grid(row=row,column=0)
+    
+    progress_bar = ttk.Progressbar(root, orient='horizontal', length=200, mode="indeterminate")
+    progress_bar.grid(row=row, column=1)
+    progress_bar.start(10)
+
+    button_stop = ttk.Button(root,text="Stopper")
+    button_stop.config(command=partial(destroy_process,button_stop,text,progress_bar,process))
+    button_stop.grid(row=row,column=2, padx=0, pady=10)
+    
+    row+=1
+    
+
 
 def run_algorithm():
     
@@ -32,16 +60,9 @@ def run_algorithm():
 
     
     if (script_command != "" and test_size != ""):
-        progress_bar.config(mode="indeterminate")    
-        progress_bar.start(10)
-        
-        subprocess.run(script_command)
-        
-        progress_bar.stop()
-        progress_bar.config(value=0)
+        start_new_process(script_command,algorithm,test_size)
     else:
         print("Paramètres manquants")
-
 
 # Create the main window
 root = tk.Tk()
@@ -66,15 +87,6 @@ test_size_dropdown.grid(row=1, column=1, padx=10, pady=5)
 # Run button
 run_button = ttk.Button(root, text="Lancer l'algorithme", command=run_algorithm)
 run_button.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
-
-# Progress bar
-progress_bar = ttk.Progressbar(root, orient='horizontal', length=200, mode='determinate')
-progress_bar.grid(row=3, column=0, columnspan=2, padx=10, pady=5)
-
-
-def update_progress(progress):
-    progress_bar['value'] = progress
-    root.update_idletasks()  # Mettre à jour l'interface utilisateur
 
 
 root.mainloop()
