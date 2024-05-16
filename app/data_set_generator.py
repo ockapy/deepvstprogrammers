@@ -5,13 +5,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 dir = os.path.dirname(__file__)
 
 import glob
-import pickle
 import numpy as np
 import scipy.io.wavfile
 
 from tqdm import trange
 
-
+# Remove normalisers and audio files before start a new data geneertion.
 def clear():
     norm_files = glob.glob(dir+"/utils/normalisers/*")
     audio_files = glob.glob(dir+"/data/dataset/audio/*")

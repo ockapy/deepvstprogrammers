@@ -91,12 +91,12 @@ class PluginFeatureExtractor:
         else:
             print ("Unsuccessful loading of plugin: is the path correct?")
 
-    def set_patch(self, plugin_patch):
+    def set_patch(self, plugin_patch): # TODO WIP
         if self.loaded_plugin:
-            if np.array(plugin_patch).size > 1:
-                plugin_patch = self.remove_patch_indices(plugin_patch)
-            self.patch = self.partial_patch_to_patch(plugin_patch)
-            plugin_patch = self.add_patch_indices(plugin_patch)
+            #if np.array(plugin_patch).size > 1:
+                # plugin_patch = self.remove_patch_indices(plugin_patch)
+            #self.patch = self.partial_patch_to_patch(plugin_patch)
+            #plugin_patch = self.add_patch_indices(plugin_patch)
             self.engine.set_patch(plugin_patch)
             self.engine.render_patch(self.midi_note,
                                      self.midi_velocity,
@@ -192,12 +192,12 @@ class PluginFeatureExtractor:
         float_audio_frames *= 32768
         return np.clip(float_audio_frames, -32768, 32767).astype(np.int16)
 
-    def get_random_example(self):
+    def get_random_example(self): # TODO WIP
         if self.loaded_plugin:
             while True:
                 random_patch_list_tuples = self.generator.get_random_patch()
                 random_patch = np.array([p[1] for p in random_patch_list_tuples])
-                random_patch = self.patch_to_partial_patch(random_patch)
+                # random_patch = self.patch_to_partial_patch(random_patch)
                 self.set_patch(random_patch_list_tuples)
                 int_audio_frames = self.float_to_int_audio(np.array(self.get_audio_frames()))
                 feature_vector = self.get_desired_features(int_audio_frames)
@@ -227,7 +227,7 @@ class PluginFeatureExtractor:
                  self.pickle_path + "spectral_centroid.pkl",
                  self.pickle_path + "spectral_spread.pkl",
                  self.pickle_path + "spectral_entropy.pkl",
-                 self.pickle_path + "spectral_flux.pkl",
+                 self.pickle_path + "spectral_flux.pkl",            # TODO FEATURES
                  self.pickle_path + "spectral_rolloff.pkl",
                  self.pickle_path + "mfccs0.pkl",
                  self.pickle_path + "mfccs1.pkl",
