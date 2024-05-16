@@ -25,19 +25,19 @@ samplesCount = 0
 
 if(arg == "--small"):
     normalisers_size = 100
-    test_size = 1
+    test_size = 10
     iterations = 1
     samplesCount = 10
 elif(arg == "--medium"):
     normalisers_size = 500
-    test_size = 10
-    iterations = 10
-    samplesCount = 50
+    test_size = 25
+    iterations = 5
+    samplesCount = 25
 elif(arg == "--large"):
     normalisers_size = 1000
     test_size = 50
-    iterations = 50
-    samplesCount = 100
+    iterations = 10
+    samplesCount = 50
 
 
 
@@ -49,8 +49,8 @@ with warnings.catch_warnings():
     operator_folder = ""
     data_folder = dir+"/data/dataset/"
     
-    desired_features = [0,1,6] # A Determiner
-    desired_features.extend([i for i in range(len(desired_features), 21)])
+    desired_features = [] # CF FEATURES.md
+    desired_features.extend([i for i in range(0, 21)])
     
     algorithm_number = 1
     # Works:  1-15
@@ -66,10 +66,10 @@ with warnings.catch_warnings():
                             (70, 1.),  (74, 0.),  (92, 1.),  (96, 0.), 
                             (114, 1.), (118, 0.), (136, 1.), (140, 0.)]
     
-    extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=2.0,
+    extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
-                                   render_length_secs=3.0,
+                                   render_length_secs=0.7,
                                    pickle_path=dir+"/utils/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
