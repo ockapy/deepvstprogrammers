@@ -21,4 +21,8 @@ Then compile boost using the following commands in boost directory:
 ```./b2 --build-type=complete --prefix=C:\Boost install```  
 
 ### Visual Studio Build
-You can now open the solution (*located in Renderman/Builds*) using latest Visual Studio version and build the project.
+You can now open the solution (*located in Renderman/Builds*) using the latest Visual Studio version and build the project.  
+  
+Once the solution is opened go to *Project -> Properties* then in *VC++ directories* and chang the paths in *Library directories* to target boost and python libraries on your system.  
+  
+Then, do the same in the *C/C++* tab in *Other include directories* to target boost and python include folders on your system.
