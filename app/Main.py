@@ -43,8 +43,8 @@ def run_algorithm():
     
     if algorithm == "Hill Climber":
         script_path += "/HillClimber.py"
-    # elif algorithm == "Algorithm 2":
-    #     script_path = "algorithm2.py"
+    elif algorithm == "Genetique":
+        script_path += "/Genetic.py"
     # elif algorithm == "Algorithm 3":
     #     script_path = "algorithm3.py"
     

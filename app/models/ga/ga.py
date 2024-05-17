@@ -1,8 +1,10 @@
 import numpy as np
 from tqdm import trange
-import resource
 import random
 
+# TODO Verifier l'algorithme et ajouter des commentaires
+# TODO Verifier l'optimisation
+# TODO Implémenter plus de retour fu programme via la console
 
 class GeneticAlgorithm:
 
@@ -51,25 +53,34 @@ class GeneticAlgorithm:
         # return self.diff
         return
 
+
+    # TODO Need optimisation
     def get_fitness(self, individual):
         """Get Euclidean distance between target and individual's features.
         Greater is better.
         """
-        patch = self.extractor.partial_patch_to_patch(individual)
+        #patch = self.extractor.partial_patch_to_patch(individual)
+        patch = self.extractor.overrideParameters(individual)
+        
         patch_w_ind = self.extractor.add_patch_indices(patch)
+        
+        
         features = self.extractor.get_features_from_patch(patch_w_ind)
+        
+        
         target = self.targets[self.target_index]
         dist = np.add.reduce(np.abs(features - target).flatten())
         fitness = float(max(0, (self.feature_size - dist))) / self.feature_size
         if self.do_sum:
             self.total_fitness_sum += fitness
         return fitness
-
+    
+    
     def get_roulette_list(self):
         """Return list of population size that has all the indices to pick from."""
         roulette_list = []
-        averaging_amount = 4
-        for i in range(self.population_size):
+        averaging_amount = 1
+        for i in trange(self.population_size,desc="Roulette"):
             fitness = 0
             for _ in range(averaging_amount):
                 dna = self.population[self.target_index][i]
@@ -96,8 +107,13 @@ class GeneticAlgorithm:
 
     def sort_and_sum_population(self):
         """Sorts population by greatest fitness first and sums total fitness whilst doing it."""
+        print("Sorting...")
         self.total_fitness_sum = 0
         self.do_sum = True
+        
+        test = self.population[self.target_index]
+        
+        
         self.population[self.target_index] = sorted(self.population[self.target_index], key=self.get_fitness, reverse=True)
         self.do_sum = False
 
@@ -105,9 +121,11 @@ class GeneticAlgorithm:
         """Returns best indiviual from each population for every respective target."""
         return [self.population[i][0] for i in range(len(self.population))]
 
+
+    # Utilise la méthode roulette
     def optimise(self):
         """Breed a new population."""
-        for i in range(len(self.targets)):
+        for i in trange(len(self.targets),desc="target"):
             self.target_index = i
             roulette_list = self.get_roulette_list()
             new_population = []
@@ -132,3 +150,4 @@ class GeneticAlgorithm:
             assert len(new_population) == len(self.population[self.target_index])
             self.population[self.target_index] = new_population
             self.sort_and_sum_population()
+            print("done")
