@@ -18,6 +18,9 @@ from tqdm import trange
 
 arg = sys.argv[1]
 
+
+# TODO Verifier si des fichiers de test existent, si oui faire un nouveau dossier (multiple processus en même temps s'écrasent)
+
 test_size = 0
 iterations = 0
 normalisers_size = 0
@@ -52,19 +55,20 @@ with warnings.catch_warnings():
     desired_features = [] # CF FEATURES.md
     desired_features.extend([i for i in range(0, 21)])
     
-    algorithm_number = 1
+    algorithm_number = 32
     # Works:  1-15
     # Bleh:  16-19
     # Works: 20-32
     alg = (1.0 / 32.0) * float(algorithm_number - 1) + 0.001
     
-    overriden_parameters = [(0, 1.0), (1, 0.0), (2, 1.0), (3, 0.0), (4, alg), (6,0.0), # PARAMETRES GENERAUX
+    overriden_parameters = [(0, 1.0), (2, 1.0), (3, 0.5), (4, alg),(5, 0.2),(6,0.0), # PARAMETRES GENERAUX
                             (7,0.0), (8,0.0), (9,0.0), (10,0.), (11,0.0), (12,0.0), # PARAMETRES LFO
-                            (15,1.),(16,1.),(17,1.), (18,1.),(19,0.5),(20,0.5),(21,0.5),(22,0.5), # PITCH EG RATE ET LEVEL
-                            (29,1.),(51,1.),(73,1.),(95,1.),(117,1.),(139,1.), # EG LEVELS
-                            (26, 1.),  (30, 0.),  (48, 1.),  (52, 0.),  # ASSURE QUE CHAQUE NOTE SE TERMINE
-                            (70, 1.),  (74, 0.),  (92, 1.),  (96, 0.), 
-                            (114, 1.), (118, 0.), (136, 1.), (140, 0.)]
+                            (15,1.0),(16,1.0),(17,1.0), (18,1.0),(19,0.5),(20,0.5),(21,0.5),(22,0.5), # PITCH EG RATE ET LEVEL
+                            (29,1.0),(51,1.0),(73,1.0),(95,1.0),(117,1.0),(139,1.0), # EG 3 LEVEL
+                            (31,1.0), #(53,1.0),(75,1.0),(97,1.0),(119,1.0),(141,1.0), # Volume des opérateurs
+                            (26, 1.0),  (30, 0.0),  (48, 1.0),  (52, 0.0),  # ASSURE QUE CHAQUE NOTE SE TERMINE (EG 4 rate et level)
+                            (70, 1.0),  (74, 0.0),  (92, 1.0),  (96, 0.0), 
+                            (114, 1.0), (118, 0.0), (136, 1.0), (140, 0.0)]
     
     extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
                                    desired_features=desired_features,
