@@ -52,11 +52,9 @@ bool RenderEngine::loadPlugin (const std::string& path)
     OwnedArray<PluginDescription> pluginDescriptions;
     KnownPluginList pluginList;
     fillAvailablePluginsInfo(path, pluginFormatManager, pluginDescriptions, pluginList);
-    cout << "before jassert" << endl;
     // If there is a problem here first check the preprocessor definitions
     // in the projucer are sensible - is it set up to scan for plugin's?
     jassert (pluginDescriptions.size() > 0);
-    cout << "after jassert" << endl;
     String errorMessage;
 
     if (plugin != nullptr) {
@@ -65,12 +63,10 @@ bool RenderEngine::loadPlugin (const std::string& path)
         delete plugin.get();
     }
 
-    cout << "before create plugin instance" << endl;
     plugin = pluginFormatManager.createPluginInstance (*pluginDescriptions[0],
                                                        sampleRate,
                                                        bufferSize,
                                                        errorMessage);
-    cout << "after create instance" << endl;
     if (plugin != nullptr)
     {
 
@@ -205,6 +201,7 @@ void RenderEngine::renderWav(boost::python::object wav)
     for (int i = 0; i < numberOfBuffers; ++i)
     {
         // TODO: SLOW
+
         auto writePointers = audioBuffer.getArrayOfWritePointers();
         int numChannels = audioBuffer.getNumChannels();
         int remaining = (i < numberOfBuffers - 1) ? bufferSize : (sampleCount % bufferSize);
