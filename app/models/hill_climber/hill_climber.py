@@ -21,13 +21,21 @@ class HillClimber:
         self.candidate = [-self.acceleration, -1.0 / self.acceleration,
                           0.0, 1.0 / self.acceleration, self.acceleration]
 
+    
+    # TODO Need optimisation
     def get_fitness(self, individual):
         """Get Euclidean distance between target and individual's features.
         Greater is better.
         """
-        patch = self.extractor.partial_patch_to_patch(individual)
+        #patch = self.extractor.partial_patch_to_patch(individual)
+        patch = self.extractor.overrideParameters(individual)
+        
         patch_w_ind = self.extractor.add_patch_indices(patch)
+        
+        
         features = self.extractor.get_features_from_patch(patch_w_ind)
+        
+        
         target = self.targets[self.target_index]
         dist = np.add.reduce(np.abs(features - target).flatten())
         fitness = float(max(0, (self.feature_size - dist)))

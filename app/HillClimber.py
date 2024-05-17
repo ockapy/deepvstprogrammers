@@ -130,8 +130,7 @@ with warnings.catch_warnings():
         
         print("\n Hill climb sample: \n")
         patch = hill_climber.current_point[0]
-        temp = extractor.partial_patch_to_patch(patch)
-        hill_patch = extractor.add_patch_indices(temp)
+        hill_patch = extractor.add_patch_indices(patch)
         extractor.set_patch(hill_patch)
         
         plt.plot(extractor.get_audio_frames())

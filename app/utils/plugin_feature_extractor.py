@@ -38,25 +38,25 @@ class PluginFeatureExtractor:
         self.parameter_size = None
         self.patch = None
 
-    def partial_patch_to_patch(self, partial_patch):
-        """"""
-        if self.total_overriden == 0:
-            return partial_patch
-        patch = []
-        overriden_counter = 0
-        partial_counter = 0
-        parameter_size = self.engine.get_plugin_parameter_size()
-        assert parameter_size != 0
-        for i in range(parameter_size):
-            if overriden_counter < len(self.overriden_parameters) and \
-               i == self.overriden_parameters[overriden_counter][0]:
-                patch.append(self.overriden_parameters[overriden_counter][1])
-                overriden_counter += 1
-            else:
-                patch.append(partial_patch[partial_counter])
-                partial_counter += 1
-        assert (partial_counter + overriden_counter) == parameter_size
-        return patch
+    # def partial_patch_to_patch(self, partial_patch):
+    #     """"""
+    #     if self.total_overriden == 0:
+    #         return partial_patch
+    #     patch = []
+    #     overriden_counter = 0
+    #     partial_counter = 0
+    #     parameter_size = self.engine.get_plugin_parameter_size()
+    #     assert parameter_size != 0
+    #     for i in range(parameter_size):
+    #         if overriden_counter < len(self.overriden_parameters) and \
+    #            i == self.overriden_parameters[overriden_counter][0]:
+    #             patch.append(self.overriden_parameters[overriden_counter][1])
+    #             overriden_counter += 1
+    #         else:
+    #             patch.append(partial_patch[partial_counter])
+    #             partial_counter += 1
+    #     assert (partial_counter + overriden_counter) == parameter_size
+    #     return patch
 
     def patch_to_partial_patch(self, patch):
         """"""
@@ -310,3 +310,8 @@ class PluginFeatureExtractor:
                     os.makedirs(self.pickle_path)
 
                 joblib.dump(normalisers[i], pickle_paths[i])
+
+    def overrideParameters(self,parameters):
+        for(index,value) in self.overriden_parameters:
+            parameters[index] = value
+        return parameters
