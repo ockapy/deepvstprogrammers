@@ -22,18 +22,14 @@ class HillClimber:
                           0.0, 1.0 / self.acceleration, self.acceleration]
 
     
-    # TODO Need optimisation
+    
     def get_fitness(self, individual):
         """Get Euclidean distance between target and individual's features.
         Greater is better.
         """
-        #patch = self.extractor.partial_patch_to_patch(individual)
-        patch = self.extractor.overrideParameters(individual)
         
-        patch_w_ind = self.extractor.add_patch_indices(patch)
-        
-        
-        features = self.extractor.get_features_from_patch(patch_w_ind)
+        self.extractor.plugin_patch.update_values(individual)   
+        features = self.extractor.get_features_from_patch(self.extractor.plugin_patch.patch)
         
         
         target = self.targets[self.target_index]

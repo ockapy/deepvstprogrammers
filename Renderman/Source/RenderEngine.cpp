@@ -21,6 +21,7 @@ void RenderEngine::fillAvailablePluginsInfo(const std::string& path,
                                             ) {
 
     pluginFormatManager.addDefaultFormats();
+    
 
     for (int i = pluginFormatManager.getNumFormats(); --i >= 0;)
     {
@@ -31,7 +32,7 @@ void RenderEngine::fillAvailablePluginsInfo(const std::string& path,
     }
 }
 
-
+// NOT WORKING
 std::string RenderEngine::getAvailablePluginsXml(const std::string& path) {
     AudioPluginFormatManager pluginFormatManager;
     OwnedArray<PluginDescription> pluginDescriptions;

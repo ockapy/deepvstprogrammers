@@ -51,9 +51,10 @@ def plot_error_histogram(all_errors):
 
 
 def get_average_features(extractor, parameters):
-    #patch = extractor.partial_patch_to_patch(parameters)
-    patch = extractor.overrideParameters(parameters)
-    patch = extractor.add_patch_indices(patch)
+    patch = extractor.plugin_patch.patch
+    # patch = extractor.partial_patch_to_patch(parameters)
+    # patch = extractor.overrideParameters(parameters)
+    #patch = extractor.add_patch_indices(patch)
     features = extractor.get_features_from_patch(patch)
     for i in range(4):
         features += extractor.get_features_from_patch(patch)

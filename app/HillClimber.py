@@ -59,7 +59,7 @@ with warnings.catch_warnings():
     # Works:  1-15
     # Bleh:  16-19
     # Works: 20-32
-    alg = (1.0 / 32.0) * float(algorithm_number - 1) + 0.001
+    alg = (1.0 / 32.0) * float(algorithm_number - 1) + 1/64
     
     overriden_parameters = [(0, 1.0), (2, 1.0), (3, 0.5), (4, alg),(5, 0.2),(6,0.0), # PARAMETRES GENERAUX
                             (7,0.0), (8,0.0), (9,0.0), (10,0.), (11,0.0), (12,0.0), # PARAMETRES LFO

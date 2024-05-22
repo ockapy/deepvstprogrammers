@@ -33,7 +33,7 @@ def get_batches(train_batch_size, test_batch_size, extractor,operator_folder):
         train_batch_y[i] = parameters
         audio = extractor.float_to_int_audio(extractor.get_audio_frames())
         location = operator_folder + '/audio/train' + str(i) + '.wav'
-        scipy.io.wavfile.write(location, 44100, audio)
+        scipy.io.wavfile.write(location, 48000, audio)
 
     test_batch_x = np.zeros((test_batch_size, f_shape[0], f_shape[1]),
                             dtype=np.float32)
@@ -44,7 +44,7 @@ def get_batches(train_batch_size, test_batch_size, extractor,operator_folder):
         test_batch_y[i] = parameters
         audio = extractor.float_to_int_audio(extractor.get_audio_frames())
         location = operator_folder + '/audio/test' + str(i) + '.wav'
-        scipy.io.wavfile.write(location, 44100, audio)
+        scipy.io.wavfile.write(location, 48000, audio)
 
     return train_batch_x, train_batch_y, test_batch_x, test_batch_y
 
