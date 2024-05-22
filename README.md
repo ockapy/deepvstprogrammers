@@ -26,3 +26,5 @@ You can now open the solution (*located in Renderman/Builds*) using the latest V
 Once the solution is opened go to *Project -> Properties* then in *VC++ directories* and chang the paths in *Library directories* to target boost and python libraries on your system.  
   
 Then, do the same in the *C/C++* tab in *Other include directories* to target boost and python include folders on your system.
+
+### MacOs build
