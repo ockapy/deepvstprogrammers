@@ -122,12 +122,23 @@ float maxiFFT::spectralCentroid() {
 	return y != 0 ? x / y * ((float) maxiSettings::sampleRate / fftSize) : 0;
 }
 
+template<class T>
+void delete_array(T* array) {
+    if (array != nullptr) {
+        delete[] array;
+        array = nullptr;
+    }
+}
 
 
 maxiFFT::~maxiFFT() {
 	delete _fft;
-	if (buffer)
-		delete[] buffer,magnitudes,phases,window, avgPower, magnitudesDB;
+    delete_array(buffer);
+    delete_array(magnitudes);
+    delete_array(phases);
+    delete_array(window);
+    delete_array(avgPower);
+    delete_array(magnitudesDB);
 }
 
 
@@ -185,7 +196,9 @@ float maxiIFFT::process(float *magnitudes, float *phases) {
 
 maxiIFFT::~maxiIFFT() {
 	delete _fft;
-	delete[] ifftOut, buffer, window;
+    delete[] ifftOut;
+    delete[] buffer;
+    delete[] window;
 };
 
 

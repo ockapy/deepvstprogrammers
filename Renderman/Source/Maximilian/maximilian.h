@@ -265,7 +265,7 @@ public:
 
 	}
 
-    maxiSample():temp(NULL),position(0), recordPosition(0), myChannels(1), mySampleRate(maxiSettings::sampleRate) {};
+    maxiSample():position(0),recordPosition(0), myChannels(1), mySampleRate(maxiSettings::sampleRate), temp(NULL) {};
 
     maxiSample& operator=(const maxiSample &source) {
         if (this == &source)

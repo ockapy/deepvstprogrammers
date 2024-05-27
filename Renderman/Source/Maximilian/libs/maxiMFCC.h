@@ -39,7 +39,7 @@ template <class T>
 class maxiMFCCAnalyser {
 public:
 	T *melBands;
-	maxiMFCCAnalyser():melFilters(NULL),dctMatrix(NULL), melBands(NULL){};
+	maxiMFCCAnalyser():melBands(nullptr),melFilters(nullptr),dctMatrix(nullptr) {};
 	~maxiMFCCAnalyser() {
 		if (melFilters) {
 			delete[] melFilters;
