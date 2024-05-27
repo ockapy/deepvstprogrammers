@@ -91,4 +91,11 @@ On Xcode, select on to left the RenderMan Dynamic Library and check the followin
 
 - Select the library to link on **Linking - General** at **Other Linker Flags**, and name the lib file to kink (without "lib" prefix and extensionb. Ex.: ```-lpython3.12 -lboost_python312```
 
+# Usage
+
+On MacOs Tk is not installer with Python, so install the latesl version:
+
+	brew install python-tk
+
+
 
