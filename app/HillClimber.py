@@ -37,6 +37,7 @@ def setTestSize(arg):
         samplesCount = 50
     return normalisers_size, test_size, iterations, samplesCount
 
+# Création des répertoires necessaires pour cette expérience
 
 
 with warnings.catch_warnings():
