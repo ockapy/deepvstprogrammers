@@ -16,7 +16,6 @@ from utils.plugin_feature_extractor import PluginFeatureExtractor
 from utils.utility_functions import get_stats
 from tqdm import trange
 
-arg = sys.argv[1]
 
 
 # TODO Verifier si des fichiers de test existent, si oui faire un nouveau dossier (multiple processus en même temps s'écrasent)
@@ -25,6 +24,12 @@ test_size = 0
 iterations = 0
 normalisers_size = 0
 samplesCount = 0
+
+# Si aucun argument choisit --small
+try:
+    arg = sys.argv[1]
+except IndexError:
+    arg = "--small"
 
 if(arg == "--small"):
     normalisers_size = 100
