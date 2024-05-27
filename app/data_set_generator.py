@@ -2,7 +2,7 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
-dir = os.path.dirname(__file__)
+root = os.path.dirname(__file__)
 
 import glob
 import numpy as np
@@ -10,12 +10,12 @@ import scipy.io.wavfile
 
 from tqdm import trange
 
-# Remove normalisers and audio files before start a new data geneertion.
+# Remove normalisers and audio files before start a new data generation.
 def clear():
-    norm_files = glob.glob(dir+"/utils/normalisers/*")
-    audio_files = glob.glob(dir+"/data/dataset/audio/*")
-    for f in norm_files:
-        os.remove(f)
+    #norm_files = glob.glob(root+"/utils/normalisers/*")
+    audio_files = glob.glob(root+"/data/dataset/audio/*")
+    # for f in norm_files:
+    #     os.remove(f)
     for f in audio_files:
         os.remove(f)
 
@@ -50,7 +50,13 @@ def get_batches(train_batch_size, test_batch_size, extractor,operator_folder):
     return train_batch_x, train_batch_y, test_batch_x, test_batch_y
 
 
+def checkfolders():
+    if not os.path.exists(root+"/data/dataset/audio/"):
+        os.makedirs(root+"/data/dataset/audio/")
+
 def generate_data(extractor,size,samplesCount):
+    
+    checkfolders()
     
     clear()
     
@@ -62,7 +68,7 @@ def generate_data(extractor,size,samplesCount):
     test_size = samplesCount
     train_size = samplesCount
 
-    operator_folder = dir+"/data/dataset/"
+    operator_folder = root+"/data/dataset/"
 
     train_x, train_y, test_x, test_y = get_batches(train_size, test_size, extractor,operator_folder)
     
