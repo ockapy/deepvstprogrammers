@@ -28,7 +28,7 @@ class PluginPatch:
             self.patch[x] = random.random()
 
     def override_parameters(self):
-        for x in self.patch.keys() & self.forbidden_parameters.keys():
+        for x in self.forbidden_parameters.keys():
             self.patch[x] = self.forbidden_parameters[x]
             
     def to_list(self):

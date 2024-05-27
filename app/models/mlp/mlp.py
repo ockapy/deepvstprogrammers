@@ -9,7 +9,7 @@ class MLP:
     def __init__(self, **kwargs):
         self.features = kwargs.get('features', None)
         self.labels = kwargs.get('labels', None)
-        self.parameters = kwargs.get('parameters', [2, 2])
+        self.parameters = kwargs.get('parameters', [2, 2]) # 2 layers de deux neurones
         self.amount_layers = len(self.parameters)
         self.learning_rate = kwargs.get('learning_rate', 0.001)
         self.prob_keep_input = kwargs.get('prob_keep_input', None)

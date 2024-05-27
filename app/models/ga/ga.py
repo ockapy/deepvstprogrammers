@@ -60,12 +60,8 @@ class GeneticAlgorithm:
         Greater is better.
         """
         #patch = self.extractor.partial_patch_to_patch(individual)
-        patch = self.extractor.overrideParameters(individual)
-        
-        patch_w_ind = self.extractor.add_patch_indices(patch)
-        
-        
-        features = self.extractor.get_features_from_patch(patch_w_ind)
+        self.extractor.plugin_patch.update_values(individual)   
+        features = self.extractor.get_features_from_patch(self.extractor.plugin_patch.patch)
         
         
         target = self.targets[self.target_index]
@@ -80,7 +76,7 @@ class GeneticAlgorithm:
         """Return list of population size that has all the indices to pick from."""
         roulette_list = []
         averaging_amount = 1
-        for i in trange(self.population_size,desc="Roulette"):
+        for i in range(self.population_size):
             fitness = 0
             for _ in range(averaging_amount):
                 dna = self.population[self.target_index][i]
@@ -96,23 +92,20 @@ class GeneticAlgorithm:
 
     def mutation_sign(self):
         """When mutating, should we add or subtract the mutation size from the given parameter?"""
-        return -1 if np.random.randint(0, 1, size=1) == 0 else 1
+        return -1 if np.random.randint(0, 2, size=1) == 0 else 1  # MR Bug, renvoyait toujours -1
 
     def mutate(self, dna):
         """Has the probability of the mutuation_rate to mutate a given parameter in the dna representing the patch."""
         for parameter in dna:
             if np.random.uniform(0.0, 1.0) < self.mutation_rate:
-                parameter += self.mutation_size * self.mutation_sign()
+                parameter += self.mutation_size * self.mutation_sign() # TODO Verifier si on est au dessus de 0
         return dna
 
     def sort_and_sum_population(self):
         """Sorts population by greatest fitness first and sums total fitness whilst doing it."""
-        print("Sorting...")
         self.total_fitness_sum = 0
         self.do_sum = True
-        
-        test = self.population[self.target_index]
-        
+         
         
         self.population[self.target_index] = sorted(self.population[self.target_index], key=self.get_fitness, reverse=True)
         self.do_sum = False
@@ -150,4 +143,3 @@ class GeneticAlgorithm:
             assert len(new_population) == len(self.population[self.target_index])
             self.population[self.target_index] = new_population
             self.sort_and_sum_population()
-            print("done")

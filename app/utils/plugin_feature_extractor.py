@@ -156,12 +156,11 @@ class PluginFeatureExtractor:
                 # random_patch = np.array([p[1] for p in random_patch_list_tuples])
                 # random_patch = self.patch_to_partial_patch(random_patch)
                 # self.set_patch(random_patch_list_tuples)
+                
                 int_audio_frames = self.float_to_int_audio(np.array(self.get_audio_frames()))
                 feature_vector = self.get_desired_features(int_audio_frames)
-                if np.isnan(feature_vector).any():
-                    continue
-                else:
-                    return (feature_vector.T)
+                    
+                return (feature_vector.T)
         else:
             print ("Please load plugin first.")
             

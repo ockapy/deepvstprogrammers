@@ -73,7 +73,7 @@ with warnings.catch_warnings():
     extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
-                                   render_length_secs=0.7,
+                                   render_length_secs=0.4,
                                    pickle_path=dir+"/utils/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
@@ -128,19 +128,4 @@ with warnings.catch_warnings():
         pickle.dump(hill_climber_stats, open(dir+"/stats" + operator_folder + "/hill_climber.p", "wb"))
         pickle.dump(model_errors, open(dir+"/stats" + operator_folder + "/all_hills_error.p", "wb"))
         print ("Finished iteration " + str(iteration) + " pickling.")
-        
-        print("Orignal sample:\n")
-        plt.plot(extractor.get_audio_frames())
-        
-        print("\n Hill climb sample: \n")
-        patch = hill_climber.current_point[0]
-        hill_patch = extractor.add_patch_indices(patch)
-        extractor.set_patch(hill_patch)
-        
-        plt.plot(extractor.get_audio_frames())
-    
-        audio = extractor.float_to_int_audio(extractor.get_audio_frames())
-        location = dir + '/stats/' + "HillClimber" + '.wav'
-        scipy.io.wavfile.write(location, 44100, audio)
-
-        plt.show()
+        print ("Finished iteration " + str(iteration) + " pickling.")

@@ -13,9 +13,9 @@ import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 
 
-from models.ga.ga import GeneticAlgorithm
-from utils.plugin_feature_extractor import PluginFeatureExtractor
-from utils.utility_functions import get_stats
+from ga import GeneticAlgorithm
+from plugin_feature_extractor import PluginFeatureExtractor
+from utility_functions import get_stats
 
 arg = sys.argv[1]
 
@@ -133,6 +133,6 @@ with warnings.catch_warnings():
         print ("Gene: " + str(ga_stats[0]))
 
         print ("Start iteration " + str(iteration) + " pickling.")
-        pickle.dump(ga_stats, open("stats/" + operator_folder + "/ga.p", "wb"))
-        pickle.dump(model_errors, open("stats/" + operator_folder + "/ga_models_error.p", "wb"))
+        pickle.dump(ga_stats, open(dir +"/stats" + operator_folder + "/ga.p", "wb"))
+        pickle.dump(model_errors, open(dir+"/stats" + operator_folder + "/ga_models_error.p", "wb"))
         print ("Finished iteration " + str(iteration) + " pickling.")

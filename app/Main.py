@@ -45,8 +45,8 @@ def run_algorithm():
         script_path += "/HillClimber.py"
     elif algorithm == "Genetique":
         script_path += "/Genetic.py"
-    # elif algorithm == "Algorithm 3":
-    #     script_path = "algorithm3.py"
+    elif algorithm == "Réseau de neuronnes":
+        script_path += "/MLP.py"
     
     
     # Add test size as an argument if needed

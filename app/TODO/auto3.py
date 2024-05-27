@@ -1,6 +1,6 @@
 import sys
 import os
-import cPickle as pickle
+import pickle
 import warnings
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'models/mlp'))

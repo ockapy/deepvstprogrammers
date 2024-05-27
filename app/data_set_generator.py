@@ -28,12 +28,13 @@ def get_batches(train_batch_size, test_batch_size, extractor,operator_folder):
                              dtype=np.float32)
     train_batch_y = np.zeros((train_batch_size, p.shape[0]), dtype=np.float32)
     for i in trange(train_batch_size, desc="Generating Train Batch"):
-        (features, parameters) = extractor.get_random_normalised_example()
+        (features, parameters) = extractor.get_random_normalised_example() #WHY NOT USING f and p?
         train_batch_x[i] = features
         train_batch_y[i] = parameters
         audio = extractor.float_to_int_audio(extractor.get_audio_frames())
         location = operator_folder + '/audio/train' + str(i) + '.wav'
         scipy.io.wavfile.write(location, 48000, audio)
+
 
     test_batch_x = np.zeros((test_batch_size, f_shape[0], f_shape[1]),
                             dtype=np.float32)
