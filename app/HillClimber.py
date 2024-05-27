@@ -71,7 +71,7 @@ with warnings.catch_warnings():
                                    pickle_path=root+"/data/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
     # Chargement du VST.
-    path = root+"/VST/Dexed.dll"
+    path = root+"/VST/Dexed"
     extractor.load_plugin(path)
     
     normalisers_size, test_size, iterations, samplesCount = setTestSize(arg)
