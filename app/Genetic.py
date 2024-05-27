@@ -2,46 +2,42 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
-dir = os.path.dirname(__file__)
 
 import pickle
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import data_set_generator as generator
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v1 as tf #type: ignore
 tf.disable_v2_behavior()
 
 
-from ga import GeneticAlgorithm
-from plugin_feature_extractor import PluginFeatureExtractor
-from utility_functions import get_stats
+from ga import GeneticAlgorithm #type: ignore
+from plugin_feature_extractor import PluginFeatureExtractor #type: ignore
+from utility_functions import get_stats #type: ignore
 
 arg = sys.argv[1]
 
+root = os.path.dirname(__file__)
 
-# TODO Verifier si des fichiers de test existent, si oui faire un nouveau dossier (multiple processus en même temps s'écrasent)
-
-test_size = 0
-iterations = 0
-normalisers_size = 0
-samplesCount = 0
-
-if(arg == "--small"):
-    normalisers_size = 100
-    test_size = 10
-    iterations = 1
-    samplesCount = 10
-elif(arg == "--medium"):
-    normalisers_size = 500
-    test_size = 25
-    iterations = 5
-    samplesCount = 25
-elif(arg == "--large"):
-    normalisers_size = 1000
-    test_size = 50
-    iterations = 10
-    samplesCount = 50
+def setTestSize(arg):
+    
+    if(arg == "--small"):
+        normalisers_size = 100
+        test_size = 10
+        iterations = 1
+        samplesCount = 10
+    elif(arg == "--medium"):
+        normalisers_size = 500
+        test_size = 25
+        iterations = 5
+        samplesCount = 25
+    elif(arg == "--large"):
+        normalisers_size = 1000
+        test_size = 50
+        iterations = 10
+        samplesCount = 50
+    return normalisers_size, test_size, iterations, samplesCount
 
 
 
@@ -51,7 +47,7 @@ with warnings.catch_warnings():
     
     # Chargement du VST.
     operator_folder = ""
-    data_folder = dir+"/data/dataset/"
+    data_folder = root+"/data/dataset/"
     
     desired_features = [] # CF FEATURES.md
     desired_features.extend([i for i in range(0, 21)])
@@ -75,12 +71,14 @@ with warnings.catch_warnings():
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
                                    render_length_secs=0.4,
-                                   pickle_path=dir+"/utils/normalisers",
+                                   pickle_path=root+"/utils/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
-    path = dir+"/VST/Dexed.dll"
+    path = root+"/VST/Dexed.dll"
     extractor.load_plugin(path)
     
+    
+    normalisers_size, test_size, iterations, samplesCount = setTestSize(arg)
     generator.generate_data(extractor,normalisers_size,samplesCount)
 
 
@@ -133,6 +131,6 @@ with warnings.catch_warnings():
         print ("Gene: " + str(ga_stats[0]))
 
         print ("Start iteration " + str(iteration) + " pickling.")
-        pickle.dump(ga_stats, open(dir +"/stats" + operator_folder + "/ga.p", "wb"))
-        pickle.dump(model_errors, open(dir+"/stats" + operator_folder + "/ga_models_error.p", "wb"))
+        pickle.dump(ga_stats, open(root +"/stats" + operator_folder + "/ga.p", "wb"))
+        pickle.dump(model_errors, open(root+"/stats" + operator_folder + "/ga_models_error.p", "wb"))
         print ("Finished iteration " + str(iteration) + " pickling.")
