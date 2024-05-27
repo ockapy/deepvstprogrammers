@@ -1,6 +1,7 @@
 import sys
 import os
 
+# Ajoute le chemin vers les modules stockés dans utils
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 
 import pickle
