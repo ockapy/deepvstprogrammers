@@ -10,6 +10,7 @@ from tqdm import trange
 from PluginPatch import PluginPatch
 from sklearn import preprocessing
 from pyAudioAnalysis import ShortTermFeatures as fe
+import sys
 
 class PluginFeatureExtractor:
 
@@ -42,24 +43,26 @@ class PluginFeatureExtractor:
         if plugin_path == "":
             print ("Please supply a non-empty path")
             return False
-        if self.engine.load_plugin(plugin_path):
-            
-            ####
+    
+        if sys.platform == 'win32':
+            plugin_path += ".dll"
+        elif sys.platform == 'darwin':
+            plugin_path += ".vst"
+        else:
+            raise Exception("Unsupported operating system")
+        
+        if(self.engine.load_plugin(plugin_path)):
             self.plugin_patch.set_parameters_name(self.engine.get_plugin_parameters_description())
-            ####
-            
+
             self.loaded_plugin = True
             self.generator = rm.PatchGenerator(self.engine)
-            
-            ####
+
             self.plugin_patch.initiate_patch(self.generator.get_random_patch(),self.overriden_parameters)
-            ####
-            
+
             print ("Successfully loaded plugin.")
             return True
         else:
-            print ("Unsuccessful loading of plugin: is the path correct?")
-            return False
+            raise Exception("Unsuccessful loading of plugin: is the path correct?")
 
 
     def set_patch(self, patch):
