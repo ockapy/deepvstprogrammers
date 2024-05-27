@@ -43,13 +43,9 @@ def setTestSize(arg):
     return normalisers_size, test_size, iterations, samplesCount
 
 with warnings.catch_warnings():
-    
-    
-    
-    # Chargement du VST.
     operator_folder = ""
     data_folder = root+"/data/dataset/"
-    
+    #JPC : selectionne les features utiles, ne sert probablement à rien, mal conçu
     desired_features = [] # CF FEATURES.md
     desired_features.extend([i for i in range(0, 21)])
     
@@ -74,7 +70,7 @@ with warnings.catch_warnings():
                                    render_length_secs=0.4,
                                    pickle_path=root+"/data/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
-
+    # Chargement du VST.
     path = root+"/VST/Dexed.dll"
     extractor.load_plugin(path)
     
