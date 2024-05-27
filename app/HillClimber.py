@@ -15,11 +15,14 @@ from utils.plugin_feature_extractor import PluginFeatureExtractor
 from utils.utility_functions import get_stats
 from tqdm import trange
 
-arg = sys.argv[1]
+# Si aucun argument choisit --small
+try:
+    arg = sys.argv[1]
+except IndexError:
+    arg = "--small"
 root = os.path.dirname(__file__)
 
 def setTestSize(arg):
-    
     if(arg == "--small"):
         normalisers_size = 100
         test_size = 10
