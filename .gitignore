@@ -14,3 +14,4 @@ app/models/hill_climber/__pycache__/*
 app/models/hill_climber/__pycache__/hill_climber.cpython-39.pyc
 app/utils/utility_functions.pyc
 app/utils/plugin_feature_extractor.pyc
+app/venv
