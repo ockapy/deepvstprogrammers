@@ -9,7 +9,7 @@ import scipy.io.wavfile
 
 from tqdm import trange
 
-root = os.path.dirname(__file__)
+root = os.path.dirname(os.path.dirname(__file__))
 
 # Remove normalisers and audio files before start a new data generation.
 def clear():
