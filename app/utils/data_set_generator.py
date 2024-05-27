@@ -29,7 +29,7 @@ def get_batches(train_batch_size, test_batch_size, extractor,operator_folder):
                              dtype=np.float32)
     train_batch_y = np.zeros((train_batch_size, p.shape[0]), dtype=np.float32)
     for i in trange(train_batch_size, desc="Generating Train Batch"):
-        (features, parameters) = extractor.get_random_normalised_example() #WHY NOT USING f and p?
+        (features, parameters) = extractor.get_random_normalised_example()
         train_batch_x[i] = features
         train_batch_y[i] = parameters
         audio = extractor.float_to_int_audio(extractor.get_audio_frames())

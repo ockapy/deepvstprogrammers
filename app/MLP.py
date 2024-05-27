@@ -68,7 +68,7 @@ with warnings.catch_warnings():
                                        desired_features=desired_features,
                                        overriden_parameters=overriden_parameters,
                                        render_length_secs=0.4,
-                                       pickle_path=os.path.dirname(__file__)+"/utils/normalisers",
+                                       pickle_path=os.path.dirname(__file__)+"/data/normalisers",
                                        warning_mode="ignore",normalize_audio=False)
     
     path = os.path.dirname(__file__)+"/VST/Dexed.dll"

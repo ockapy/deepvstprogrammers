@@ -245,7 +245,7 @@ class PluginFeatureExtractor:
         #     return
         with warnings.catch_warnings():
             warnings.simplefilter(self.warning_mode)
-            path = os.path.dirname(os.path.abspath(__file__)) + "/" + self.pickle_path
+            path = os.path.dirname(os.path.dirname(__file__)) + "/data/" + self.pickle_path
             print ("\nBeginning to fit normalisers in " + path)
             f = self.get_random_example()
             (y, x) = f.shape
