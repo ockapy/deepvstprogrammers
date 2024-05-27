@@ -54,6 +54,8 @@ def get_batches(train_batch_size, test_batch_size, extractor,operator_folder):
 def checkfolders():
     if not os.path.exists(root+"/data/dataset/audio/"):
         os.makedirs(root+"/data/dataset/audio/")
+    if not os.path.exists(root+"/stats/"):
+        os.makedirs(root+"/stats/")
 
 def generate_data(extractor,size,samplesCount):
     

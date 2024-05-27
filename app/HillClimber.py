@@ -20,6 +20,7 @@ try:
     arg = sys.argv[1]
 except IndexError:
     arg = "--small"
+    
 root = os.path.dirname(__file__)
 
 def setTestSize(arg):

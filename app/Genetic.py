@@ -16,8 +16,12 @@ from ga import GeneticAlgorithm #type: ignore
 from plugin_feature_extractor import PluginFeatureExtractor #type: ignore
 from utility_functions import get_stats #type: ignore
 
-arg = sys.argv[1]
-
+# Si aucun argument choisit --small
+try:
+    arg = sys.argv[1]
+except IndexError:
+    arg = "--small"
+    
 root = os.path.dirname(__file__)
 
 def setTestSize(arg):
