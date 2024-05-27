@@ -42,6 +42,7 @@ elif(arg == "--large"):
     iterations = 10
     samplesCount = 50
 
+# Création des répertoires necessaires pour cette expérience
 
 
 with warnings.catch_warnings():
@@ -77,7 +78,7 @@ with warnings.catch_warnings():
                                    pickle_path=dir+"/utils/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
-    path = dir+"/VST/Dexed.dll"
+    path = dir+"/VST/Dexed.vst"
     extractor.load_plugin(path)
     
     generator.generate_data(extractor,normalisers_size,samplesCount)
