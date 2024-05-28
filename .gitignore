@@ -4,7 +4,7 @@
 /app/utils/normalisers
 app/models/hill_climber/__pycache__
 app/stats
-
+app/utils/*.so
 Renderman/Builds/VisualStudio2022/x64
 Renderman/Builds/VisualStudio2022/.vs/
 app/utils/librenderman.pyd
