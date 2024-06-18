@@ -13,25 +13,25 @@ root = os.path.dirname(os.path.dirname(__file__))
 
 # Remove normalisers and audio files before start a new data generation.
 def clear():
-    #norm_files = glob.glob(root+"/utils/normalisers/*")
+    norm_files = glob.glob(root+"/data/normalisers/*")
     audio_files = glob.glob(root+"/data/dataset/audio/*")
-    # for f in norm_files:
-    #     os.remove(f)
+    for f in norm_files:
+        os.remove(f)
     for f in audio_files:
         os.remove(f)
 
 
 def get_batches(train_batch_size, test_batch_size, extractor,operator_folder):
 
-    (f, p) = extractor.get_random_normalised_example()
-    f_shape = np.array(f).shape
+    (frames, patch) = extractor.get_random_normalised_example()
+    f_shape = np.array(frames).shape
     train_batch_x = np.zeros((train_batch_size, f_shape[0], f_shape[1]),
                              dtype=np.float32)
-    train_batch_y = np.zeros((train_batch_size, p.shape[0]), dtype=np.float32)
+    train_batch_y = np.zeros((train_batch_size, patch.shape[0]), dtype=np.float32)
     for i in trange(train_batch_size, desc="Generating Train Batch"):
-        (features, parameters) = extractor.get_random_normalised_example()
-        train_batch_x[i] = features
-        train_batch_y[i] = parameters
+        (frames, patch) = extractor.get_random_normalised_example()
+        train_batch_x[i] = frames
+        train_batch_y[i] = patch
         audio = extractor.float_to_int_audio(extractor.get_audio_frames())
         location = operator_folder + '/audio/train' + str(i) + '.wav'
         scipy.io.wavfile.write(location, 48000, audio)
@@ -39,7 +39,7 @@ def get_batches(train_batch_size, test_batch_size, extractor,operator_folder):
 
     test_batch_x = np.zeros((test_batch_size, f_shape[0], f_shape[1]),
                             dtype=np.float32)
-    test_batch_y = np.zeros((test_batch_size, p.shape[0]), dtype=np.float32)
+    test_batch_y = np.zeros((test_batch_size, patch.shape[0]), dtype=np.float32)
     for i in trange(test_batch_size, desc="Generating Test Batch"):
         (features, parameters) = extractor.get_random_normalised_example()
         test_batch_x[i] = features

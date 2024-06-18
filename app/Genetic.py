@@ -2,17 +2,17 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 
 import pickle
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import data_set_generator as generator
-import tensorflow.compat.v1 as tf #type: ignore
-tf.disable_v2_behavior()
 
 
-from ga import GeneticAlgorithm #type: ignore
+
+from ga.ga import GeneticAlgorithm #type: ignore
 from plugin_feature_extractor import PluginFeatureExtractor #type: ignore
 from utility_functions import get_stats #type: ignore
 
@@ -78,7 +78,7 @@ with warnings.catch_warnings():
                                    pickle_path=root+"/data/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
 
-    path = root+"/VST/Dexed.dll"
+    path = root+"/VST/Dexed"
     extractor.load_plugin(path)
     
     
@@ -96,11 +96,6 @@ with warnings.catch_warnings():
     features_cols = train_x[0].shape[0]
     features_rows = train_x[0].shape[1]
     parameter_size = train_y[0].shape[0]
-    features = tf.placeholder(tf.float32, [None, features_cols, features_rows])
-    patches = tf.placeholder(tf.float32, [None, parameter_size])
-    prob_keep_input = tf.placeholder(tf.float32)
-    prob_keep_hidden = tf.placeholder(tf.float32)
-    batch_size = tf.placeholder(tf.int32)
 
     warnings.simplefilter("ignore")
 
@@ -110,9 +105,6 @@ with warnings.catch_warnings():
                           feature_size=(features_cols * features_rows),
                           mutation_rate=0.01, mutation_size=0.1)
 
-    print ("Initialising TensorFlow variables and building tensor graph...")
-    sess = tf.Session()
-    sess.run(tf.global_variables_initializer())
 
     model_errors = {
         'ga': [],

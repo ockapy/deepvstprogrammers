@@ -13,7 +13,7 @@ import data_set_generator as generator
 
 from models.hill_climber.hill_climber import HillClimber
 from utils.plugin_feature_extractor import PluginFeatureExtractor
-from utils.utility_functions import get_stats
+from utils.utility_functions import get_stats,display_stats
 from tqdm import trange
 
 # Si aucun argument choisit --small
@@ -31,12 +31,12 @@ def setTestSize(arg):
         iterations = 1
         samplesCount = 10
     elif(arg == "--medium"):
-        normalisers_size = 500
+        normalisers_size = 1000
         test_size = 25
         iterations = 5
         samplesCount = 25
     elif(arg == "--large"):
-        normalisers_size = 1000
+        normalisers_size = 10000
         test_size = 50
         iterations = 10
         samplesCount = 50
@@ -100,27 +100,26 @@ with warnings.catch_warnings():
         'hill_climber': [],
     }
 
-    hill_prediction = hill_climber.prediction()
-    hill_climber_stats = get_stats(extractor, hill_prediction, test_x, test_y)
-    model_errors['hill_climber'] += [hill_climber_stats[0]]
+    # hill_prediction = hill_climber.prediction()
+    # hill_climber_stats = get_stats(extractor, hill_prediction, test_x, test_y)
+    # model_errors['hill_climber'] += [hill_climber_stats[0]]
 
-    for iteration in range(iterations):
+    for test_file in range(test_size):
+        print("\n************TESTING FILE N°"+str(test_file)+"*****************")
 
-        print ("\n*** Iteration: " + str(iteration) + " ***")
+        
+        for iteration in range(iterations):
 
-        print("\nHill Climber: ")
-        hill_climber.optimise()
-        hill_prediction = hill_climber.prediction()
-        hill_climber_stats = get_stats(extractor,
-                                      hill_prediction,
-                                      test_x,
-                                      test_y)
-        model_errors['hill_climber'] += [hill_climber_stats[0]]
-
-        print ("Hill: " + str(hill_climber_stats[0]))
-
-        print ("Start iteration " + str(iteration) + " pickling.")
-        pickle.dump(hill_climber_stats, open(root+"/stats" + operator_folder + "/hill_climber.p", "wb"))
-        pickle.dump(model_errors, open(root+"/stats" + operator_folder + "/all_hills_error.p", "wb"))
-        print ("Finished iteration " + str(iteration) + " pickling.")
-        print ("Finished iteration " + str(iteration) + " pickling.")
+            print ("\n*** Iteration: " + str(iteration) + " ***")
+            
+            distance = hill_climber.get_fitness(hill_climber.current_point[test_size-1])
+            print("\nDistance to target: "+str(distance))
+            
+            print("\nCreating audio file")
+            extractor.set_patch(hill_climber.current_point[test_size-1])
+            audio = extractor.float_to_int_audio(extractor.get_audio_frames())
+            location = root + '/data/dataset/audio/' + str(iteration) + '.wav'
+            scipy.io.wavfile.write(location, 48000, audio)        
+            
+            hill_climber.optimise()
+            

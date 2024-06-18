@@ -264,8 +264,7 @@ class PluginFeatureExtractor:
             normalisers = [preprocessing.MinMaxScaler() for i in range(x)]
             for i in trange(x, desc="Fitting normalisers"):
                 normalisers[i].fit_transform(all_features[i])
-                print (all_features[i].shape)
-
+                
             # Pickle the normalisers for future sessions.
             pickle_paths = self.get_file_paths()
             for i in range(x):
