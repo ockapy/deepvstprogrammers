@@ -216,7 +216,8 @@ class DX7voice:
             pos+=17 
                
         self.globals = DX7globals(data,True)
-        self.name = data[118:128].tobytes().decode('utf-8') 
+        self.name = data[118:128].tobytes().decode('utf-8') #TODO: Correct name parsing
+        print(self.name)
         
         
 
@@ -269,7 +270,10 @@ class VMEM:
         if(len(data) != 4104):
             raise Exception("Size should be of 4104")
         
-        sx = np.frombuffer(data,dtype=np.uint8)
+        arr = np.frombuffer(data,dtype=np.uint8)
+
+        sx = arr.astype(int) 
+        # Conversion des données en tableau en entiers car numpy V2 ne traite les uint8 comme des scalaires et falsifie les comparaisons et opérations bitwise
         
         if(sx[0] != SX.start.value or sx[1] != SX.yamaha.value):
             raise Exception("Wrong sysex header")
@@ -292,11 +296,6 @@ class VMEM:
             voice = sx[offset:offset+voiceSize]
             voices.append(voice)
         
-                
-        # checksum = cheksum7(voice)
-        # sxsk = sx[voiceSize+6]
-        # if(sxsk != checksum):
-        #     raise Exception("Wrong sysex checksum")
         
         if(sx[voiceSize*32+7] != SX.end.value):
             raise Exception("Wrong sysex end")
@@ -308,7 +307,7 @@ def getVoice(path):
         data = file.read()
         vmem = VMEM(data)
         
-        return vmem.voice
+        return vmem.voices
          
 
 # https://forum.pdpatchrepo.info/uploads/files/1611522180187-sysex-format.txt

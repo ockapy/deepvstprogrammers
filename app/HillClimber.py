@@ -65,7 +65,7 @@ with warnings.catch_warnings():
                             # (31,1.0), #(53,1.0),(75,1.0),(97,1.0),(119,1.0),(141,1.0), # Volume des opérateurs
                             ]
     
-    voice = sd.getVoice("app\VST\SynprezFM_01.syx")
+    voice = sd.getVoice(root+"/VST/SynprezFM_01.syx")
     converter = Converter()
     
     patch = converter.transform_to_patch(voice=voice)
