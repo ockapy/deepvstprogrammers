@@ -155,7 +155,7 @@ class DX7globals:
         self.resonance = 0
         self.output = 99
         self.masterTune = 50
-        self.middleC = 72
+        self.middleC = 60
         
         
         if bank:
@@ -291,11 +291,13 @@ class VMEM:
         # On range la première voice en retirant l'en-tête 
         voices = [sx[6:voiceSize+6]]
         
+        offset = 134
+
         # On range dans la liste les 31 autres voices, avec 128 octets de décalage à chaque itération
         for i in range(31):
-            offset = voiceSize*(i+1)+6
             voice = sx[offset:offset+voiceSize]
             voices.append(voice)
+            offset += voiceSize
         
         
         if(sx[voiceSize*32+7] != SX.end.value):
