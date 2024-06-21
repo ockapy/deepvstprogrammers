@@ -6,7 +6,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 import glob
 import numpy as np
 import scipy.io.wavfile
-
+import sysex_data_extractor as sd
 from tqdm import trange
 
 root = os.path.dirname(os.path.dirname(__file__))
@@ -88,3 +88,27 @@ def generate_data(extractor,size,samplesCount):
     print ("Finished.")
     
     return True
+
+def generateFromSysex(extractor):
+    
+    checkfolders()
+    
+    clear()
+    
+    operator_folder = root+"/data/dataset/"
+
+    
+    bank = sd.getVoice(root+"/VST/SynprezFM_01.syx")
+    
+    patches = sd.bankToPatches(bank)
+    count=1
+    for patch in patches:
+        extractor.set_patch(patch)
+        audio = extractor.float_to_int_audio(extractor.get_audio_frames())
+        location = operator_folder + '/audio/song' + str(count) + '.wav'
+        scipy.io.wavfile.write(location, 48000, audio)
+        count+=1
+    print ("Finished.")
+    
+    return True
+

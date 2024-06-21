@@ -34,8 +34,10 @@ class PluginPatch:
     def to_list(self):
         return list(self.patch.items())
     
-    def set_patch(self,patch: tuple):
-        self.patch = {x:y for x,y in patch}
+    def set_patch(self,patch: list):
+        for i in range(len(patch)):
+            self.patch[i] = patch[i]
+        self.override_parameters()
         
     def update_values(self,patch: list):
         for key, new_value in zip(self.patch.keys(), patch):

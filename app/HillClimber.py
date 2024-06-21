@@ -65,13 +65,10 @@ with warnings.catch_warnings():
                             # (31,1.0), #(53,1.0),(75,1.0),(97,1.0),(119,1.0),(141,1.0), # Volume des opérateurs
                             ]
     
-    voice = sd.getVoice(root+"/VST/SynprezFM_01.syx")
-    converter = Converter()
-    
-    patch = converter.transform_to_patch(voice=voice)
     
     
-    extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=2,
+    
+    extractor = PluginFeatureExtractor(midi_note=72, note_length_secs=2,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
                                    render_length_secs=4,
@@ -80,11 +77,8 @@ with warnings.catch_warnings():
     # Chargement du VST.
     path = root+"/VST/Dexed"
     extractor.load_plugin(path)
-    
-    extractor.plugin_patch.update_values(patch=patch)
-    ls = extractor.plugin_patch.to_list()
-    extractor.overriden_parameters = ls
-    extractor.plugin_patch.set_forbidden_parameters(ls)
+
+    generator.generateFromSysex(extractor)
     
     normalisers_size, test_size, iterations, samplesCount = setTestSize(arg)
     generator.generate_data(extractor,normalisers_size,samplesCount)

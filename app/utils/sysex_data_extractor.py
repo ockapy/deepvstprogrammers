@@ -155,8 +155,8 @@ class DX7globals:
         self.resonance = 0
         self.output = 99
         self.masterTune = 50
-        self.middleC = 24
-        self.globalEg = DX7eg(data[0:8])
+        self.middleC = 72
+        
         
         if bank:
             self._decodeVMEM(data)
@@ -165,7 +165,7 @@ class DX7globals:
         
     def _decodeVCED(self,data):
         
-        
+        self.globalEg = DX7eg(data[0:8])
         self.algorithm = data[8]
         self.feedback = data[9]
         self.oscSync = data[10]
@@ -175,7 +175,8 @@ class DX7globals:
         self.pModSens = data[17]
         
     def _decodeVMEM(self,data):
-        
+
+        self.globalEg = DX7eg(data[102:110])
         self.algorithm = data[110] & 0x1F
         self.oscSync = (data[111] >> 3) & 1
         self.feedback = data[111] & 7
@@ -292,7 +293,7 @@ class VMEM:
         
         # On range dans la liste les 31 autres voices, avec 128 octets de décalage à chaque itération
         for i in range(31):
-            offset = voiceSize*(i+1)
+            offset = voiceSize*(i+1)+6
             voice = sx[offset:offset+voiceSize]
             voices.append(voice)
         
@@ -309,5 +310,12 @@ def getVoice(path):
         
         return vmem.voices
          
+def bankToPatches(voices):
+    converter = Converter()
+    patches = []
+    for voice in voices:
+        patch = converter.transform_to_patch(voice)
+        patches.append(patch)
+    return patches
 
 # https://forum.pdpatchrepo.info/uploads/files/1611522180187-sysex-format.txt

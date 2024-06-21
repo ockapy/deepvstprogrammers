@@ -67,8 +67,8 @@ class PluginFeatureExtractor:
 
     def set_patch(self, patch):
         if self.loaded_plugin:
+            self.plugin_patch.set_patch(patch)
             self.engine.set_patch(self.plugin_patch.to_list())
-            # self.engine.set_patch(plugin_patch)
             self.engine.render_patch(self.midi_note,
                                      self.midi_velocity,
                                      self.note_length_secs,
@@ -276,3 +276,7 @@ class PluginFeatureExtractor:
         for(index,value) in self.overriden_parameters:
             parameters[index] = value
         return parameters
+    
+    def render_patch(self, patch):
+        self.set_patch(patch)
+        return self.get_audio_frames()
