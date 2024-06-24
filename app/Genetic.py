@@ -20,48 +20,56 @@ from utility_functions import get_stats #type: ignore
 try:
     arg = sys.argv[1]
 except IndexError:
-    arg = "--small"
+    arg = "--default"
     
 root = os.path.dirname(__file__)
 
 def setTestSize(arg):
-    
-    if(arg == "--small"):
+    # Recupère des valeurs sur la taille du test en fonction de l'argument
+    match arg:
+        case "--small":
         normalisers_size = 100
         test_size = 10
         iterations = 1
         samplesCount = 10
-    elif(arg == "--medium"):
+    match "--medium":
         normalisers_size = 500
         test_size = 25
         iterations = 5
         samplesCount = 25
-    elif(arg == "--large"):
+    match "--large":
         normalisers_size = 1000
         test_size = 50
         iterations = 10
         samplesCount = 50
+    match "--default":
+        # Teste technique de débug
+        normalisers_size = 10
+        test_size = 5
+        iterations = 1
+        samplesCount = 5
     return normalisers_size, test_size, iterations, samplesCount
 
 
 
 with warnings.catch_warnings():
-    
-    
-    
-    # Chargement du VST.
+ 
     operator_folder = ""
     data_folder = root+"/data/dataset/"
     
+    #JPC : est-ce utile ?
     desired_features = [] # CF FEATURES.md
     desired_features.extend([i for i in range(0, 21)])
     
+    #JPC Limitation dans la génération : seul l'algorithme 32 est utilisé ?
     algorithm_number = 32
     # Works:  1-15
     # Bleh:  16-19
     # Works: 20-32
+    # Encode l'analgorithme par un flotant comme els autres paramètres
     alg = (1.0 / 32.0) * float(algorithm_number - 1) + 0.001
     
+    # Paramètre fixé pour la génération des exemples
     overriden_parameters = [(0, 1.0), (2, 1.0), (3, 0.5), (4, alg),(5, 0.2),(6,0.0), # PARAMETRES GENERAUX
                             (7,0.0), (8,0.0), (9,0.0), (10,0.), (11,0.0), (12,0.0), # PARAMETRES LFO
                             (15,1.0),(16,1.0),(17,1.0), (18,1.0),(19,0.5),(20,0.5),(21,0.5),(22,0.5), # PITCH EG RATE ET LEVEL
@@ -80,7 +88,6 @@ with warnings.catch_warnings():
 
     path = root+"/VST/Dexed"
     extractor.load_plugin(path)
-    
     
     normalisers_size, test_size, iterations, samplesCount = setTestSize(arg)
     generator.generate_data(extractor,normalisers_size,samplesCount)

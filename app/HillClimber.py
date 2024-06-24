@@ -14,17 +14,23 @@ import utils.data_set_generator as generator
 
 from models.hill_climber.hill_climber import HillClimber
 from utils.plugin_feature_extractor import PluginFeatureExtractor
+<<<<<<< HEAD
 from utils.utility_functions import get_stats,display_stats
+=======
+from utils.utility_functions import get_stats
+from utils.utility_functions import getTestSize
+>>>>>>> e31ba62 (Ajout gestion paramètre par défaut)
 from tqdm import trange
 
 # Si aucun argument choisit --small
 try:
     arg = sys.argv[1]
 except IndexError:
-    arg = "--small"
+    arg = "--default"
     
 root = os.path.dirname(__file__)
 
+<<<<<<< HEAD
 def setTestSize(arg):
     if(arg == "--small"):
         normalisers_size = 1
@@ -43,6 +49,8 @@ def setTestSize(arg):
         samplesCount = 50
     return normalisers_size, test_size, iterations, samplesCount
 
+=======
+>>>>>>> e31ba62 (Ajout gestion paramètre par défaut)
 with warnings.catch_warnings():
     operator_folder = ""
     data_folder = root+"/data/dataset/"
@@ -76,6 +84,12 @@ with warnings.catch_warnings():
     # Chargement du VST.
     path = root+"/VST/Dexed"
     extractor.load_plugin(path)
+<<<<<<< HEAD
+=======
+    
+    normalisers_size, test_size, iterations, samplesCount = getTestSize(arg)
+    generator.generate_data(extractor,normalisers_size,samplesCount)
+>>>>>>> e31ba62 (Ajout gestion paramètre par défaut)
 
 
     normalisers_size, test_size, iterations, samplesCount = setTestSize(arg)
@@ -118,6 +132,7 @@ with warnings.catch_warnings():
             
             hill_climber.optimise(test_file)
 
+<<<<<<< HEAD
             distance = hill_climber.get_fitness(hill_climber.current_point[test_file])
             print("\nDistance to target: "+str(distance))
             
@@ -131,3 +146,12 @@ with warnings.catch_warnings():
                 scipy.io.wavfile.write(location, 48000, audio)        
             
             
+=======
+        print ("Hill: " + str(hill_climber_stats[0]))
+
+        print ("Start iteration " + str(iteration) + " pickling.")
+        pickle.dump(hill_climber_stats, open(root+"/stats" + operator_folder + "/hill_climber.p", "wb"))
+        pickle.dump(model_errors, open(root+"/stats" + operator_folder + "/all_hills_error.p", "wb"))
+        print ("Finished iteration " + str(iteration) + " pickling.")
+print("End of HillClimber")
+>>>>>>> e31ba62 (Ajout gestion paramètre par défaut)

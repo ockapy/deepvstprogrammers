@@ -5,6 +5,32 @@ import scipy.io.wavfile
 import sys
 import struct
 
+# Recupère des valeurs sur la taille du test en fonction de l'argument
+def getTestSize(arg):
+    match arg:
+        case "--small":
+            normalisers_size = 100
+            test_size = 10
+            iterations = 1
+            samplesCount = 10
+        case "--medium":
+            normalisers_size = 500
+            test_size = 25
+            iterations = 5
+            samplesCount = 25
+        case "--large":
+            normalisers_size = 1000
+            test_size = 50
+            iterations = 10
+            samplesCount = 50
+        case "--default":
+            # Test technique de débug
+            normalisers_size = 10
+            test_size = 5
+            iterations = 1
+            samplesCount = 5
+    return normalisers_size, test_size, iterations, samplesCount
+
 
 def plot_error(errors):
     """Plot error from testing batches during optimisation."""
