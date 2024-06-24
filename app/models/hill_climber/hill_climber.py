@@ -37,32 +37,31 @@ class HillClimber:
         fitness = float(max(0, (self.feature_size - dist)))
         return fitness
 
-    def optimise(self):
+    def optimise(self,t):
         """Breed a new population."""
-        for t in range(len(self.targets)):
-            start_time = time.time()
-            self.target_index = t
-            for i in trange(len(self.current_point[t])):
-                best_score = self.get_fitness(self.current_point[t])
-                best = 2
-                for j in range(len(self.candidate)):
-                    increment = self.step_size[t][i] * self.candidate[j]
-                    self.current_point[t][i] += increment
-                    temp = 0
-                    for _ in range(self.averaging_amt):
-                        temp += self.get_fitness(self.current_point[t])
-                    temp /= self.averaging_amt
-                    self.current_point[t][i] -= increment
-                    if (temp > best_score):
-                        best_score = temp
-                        best = j
-                if best == 2:
-                    self.step_size[t][i] /= self.acceleration
-                else:
-                    increment = self.step_size[t][i] * self.candidate[best]
-                    self.current_point[t][i] += increment
-                    self.step_size[t][i] *= self.candidate[best]
-            print("--- %s seconds ---" % (time.time() - start_time))
+        start_time = time.time()
+        self.target_index = t
+        for i in trange(len(self.current_point[t]), desc="Finding new params"):
+            best_score = self.get_fitness(self.current_point[t])
+            best = 2
+            for j in range(len(self.candidate)):
+                increment = self.step_size[t][i] * self.candidate[j]
+                self.current_point[t][i] += increment
+                temp = 0
+                for _ in range(self.averaging_amt):
+                    temp += self.get_fitness(self.current_point[t])
+                temp /= self.averaging_amt
+                self.current_point[t][i] -= increment
+                if (temp > best_score):
+                    best_score = temp
+                    best = j
+            if best == 2:
+                self.step_size[t][i] /= self.acceleration
+            else:
+                increment = self.step_size[t][i] * self.candidate[best]
+                self.current_point[t][i] += increment
+                self.step_size[t][i] *= self.candidate[best]
+        print("--- %s seconds ---" % (time.time() - start_time))
 
     def prediction(self):
         """Returns best indiviual for every respective target."""

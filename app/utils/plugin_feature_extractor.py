@@ -228,11 +228,10 @@ class PluginFeatureExtractor:
                 
                 patch = np.array(list(self.plugin_patch.patch.values()),dtype=np.float32)
             
-                index = 0
                 for i in range(len(normalisers)):
                     if i in self.desired_features_indices:
                         normalised_features= normalisers[i].transform(features.T)
-                        index += 1
+     
 
                 norm_features = np.array(normalised_features)
 
@@ -240,6 +239,29 @@ class PluginFeatureExtractor:
                 return (norm_features.T, patch)
             else:
                 print ("Please train normalisers using PluginFeatureExtractor.fit_normalisers().")
+                
+    def dataset_from_sysex(self,patch):
+        with warnings.catch_warnings():
+            warnings.simplefilter(self.warning_mode)
+            if self.pickle_files_exist():
+                files = self.get_file_paths()
+                normalisers = [joblib.load(files[i]) for i in range(len(files))]
+                
+                self.set_patch(patch)
+                patch = np.array(list(self.plugin_patch.patch.values()),dtype=np.float32)
+                
+                int_audio_frames = self.float_to_int_audio(np.array(self.get_audio_frames()))
+                feature_vector = self.get_desired_features(int_audio_frames)
+                
+                for i in range(len(normalisers)):
+                    if i in self.desired_features_indices:
+                        normalised_features= normalisers[i].transform(feature_vector)
+                        
+                norm_features = np.array(normalised_features)
+              
+                assert norm_features.shape == feature_vector.shape
+                return (norm_features.T, patch)  
+                    
 
     def fit_normalisers(self, amount):
         # if len(self.desired_features_indices) != 21:

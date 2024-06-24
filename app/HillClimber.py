@@ -10,8 +10,7 @@ import matplotlib.pyplot as plt
 import scipy
 import numpy as np
 import utils.data_set_generator as generator
-import utils.sysex_data_extractor as sd
-from utils.sysexConverter import Converter
+
 
 from models.hill_climber.hill_climber import HillClimber
 from utils.plugin_feature_extractor import PluginFeatureExtractor
@@ -68,27 +67,25 @@ with warnings.catch_warnings():
     
     
     
-    extractor = PluginFeatureExtractor(midi_note=72, note_length_secs=2,
+    extractor = PluginFeatureExtractor(midi_note=60, note_length_secs=0.4,
                                    desired_features=desired_features,
                                    overriden_parameters=overriden_parameters,
-                                   render_length_secs=4,
+                                   render_length_secs=0.7,
                                    pickle_path=root+"/data/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
     # Chargement du VST.
     path = root+"/VST/Dexed"
     extractor.load_plugin(path)
 
-    generator.generateFromSysex(extractor)
-    
-    normalisers_size, test_size, iterations, samplesCount = setTestSize(arg)
-    generator.generate_data(extractor,normalisers_size,samplesCount)
 
+    normalisers_size, test_size, iterations, samplesCount = setTestSize(arg)
+    generator.generateFromSysex(extractor,test_size,samplesCount)
 
     # Get training and testing batch.
     train_x = np.load(data_folder + "train_x.npy")
     train_y = np.load(data_folder + "train_y.npy")
-    test_x = np.load(data_folder + "test_x.npy")[0:test_size]
-    test_y = np.load(data_folder + "test_y.npy")[0:test_size]
+    test_x = np.load(data_folder + "test_x.npy")
+    test_y = np.load(data_folder + "test_y.npy")
 
     # Load models.
     features_cols = train_x[0].shape[0]
@@ -111,7 +108,7 @@ with warnings.catch_warnings():
     # model_errors['hill_climber'] += [hill_climber_stats[0]]
 
     temp_best = 0
-    for test_file in range(test_size):
+    for test_file in range(1):
         print("\n************TESTING FILE N°"+str(test_file)+"*****************")
 
         
@@ -119,17 +116,18 @@ with warnings.catch_warnings():
 
             print ("\n*** Iteration: " + str(iteration) + " ***")
             
-            distance = hill_climber.get_fitness(hill_climber.current_point[test_size-1])
+            hill_climber.optimise(test_file)
+
+            distance = hill_climber.get_fitness(hill_climber.current_point[test_file])
             print("\nDistance to target: "+str(distance))
             
-            if (distance > temp_best):
+            if (distance >= temp_best):
                 temp_best = distance
             
                 print("\nCreating audio file")
-                extractor.set_patch(hill_climber.current_point[test_size-1])
+                extractor.set_patch(hill_climber.current_point[test_file])
                 audio = extractor.float_to_int_audio(extractor.get_audio_frames())
                 location = root + '/data/dataset/audio/Result ' + str(round(distance,0)) + '.wav'
                 scipy.io.wavfile.write(location, 48000, audio)        
             
-            hill_climber.optimise()
             
