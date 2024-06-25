@@ -1,4 +1,5 @@
 import os
+import sys
 
 import joblib
 import warnings
@@ -10,7 +11,6 @@ from tqdm import trange
 from PluginPatch import PluginPatch
 from sklearn import preprocessing
 from pyAudioAnalysis import ShortTermFeatures as fe
-import sys
 
 class PluginFeatureExtractor:
 
@@ -37,13 +37,14 @@ class PluginFeatureExtractor:
         self.parameter_size = None
         self.plugin_patch = PluginPatch()
 
-
+    # Charge un plugin dans RenderMan
     def load_plugin(self, plugin_path):
         self.engine = rm.RenderEngine(self.sample_rate, self.buffer_size, 2048)
         if plugin_path == "":
             print ("Please supply a non-empty path")
             return False
     
+        # Charge la bonne version d'un vst selon l'OS
         if sys.platform == 'win32':
             plugin_path += ".dll"
         elif sys.platform == 'darwin':
@@ -51,48 +52,65 @@ class PluginFeatureExtractor:
         else:
             raise Exception("Unsupported operating system")
         
+        # Vérifie si RenderMan charge bien le plugin
         if(self.engine.load_plugin(plugin_path)):
+            
+            # Récupère le nom de chaque paramètre pour le mettre dans le pluginPatch
             self.plugin_patch.set_parameters_name(self.engine.get_plugin_parameters_description())
-
             self.loaded_plugin = True
+            
+            # Initalise le générateur de patchs de RenderMan
             self.generator = rm.PatchGenerator(self.engine)
 
+            # Créé un patch aléatoire et ajoute les paramètres bloqués dans le plugin Patch
             self.plugin_patch.initiate_patch(self.generator.get_random_patch(),self.overriden_parameters)
 
             print ("Successfully loaded plugin.")
+            print ("Parameter count: " + str(len(self.plugin_patch.patch)))
             return True
         else:
             raise Exception("Unsuccessful loading of plugin: is the path correct?")
 
-
+    # Charge un patch dans RenderMan
     def set_patch(self, patch):
         if self.loaded_plugin:
-            self.plugin_patch.set_patch(patch)
+            
+            # Met à jour les valeurs du plugin patch
+            self.plugin_patch.update_values(patch)
             self.engine.set_patch(self.plugin_patch.to_list())
+            
             self.engine.render_patch(self.midi_note,
                                      self.midi_velocity,
                                      self.note_length_secs,
                                      self.render_length_secs)
+            
             self.rendered_patch = True
             return True
         else:
             print ("Please load plugin first")
 
+    # Récupère depuis un patch les features audio du son produit
     def get_features_from_patch(self, patch):
+        
         if self.pickle_files_exist():
             files = self.get_file_paths()
+            
             if self.set_patch(patch):
                 int_audio_frames = self.float_to_int_audio(np.array(self.get_audio_frames()))
                 feature_vector = self.get_desired_features(int_audio_frames)
                 contains_nan = np.isnan(feature_vector).any()
+                
                 if contains_nan:
                     feature_vector = np.zeros_like(feature_vector)
+                    
                 normalisers = [joblib.load(files[i]) for i in range(len(files))]
                 index = 0
+                
                 for i in range(len(normalisers)):
                     if i in self.desired_features_indices:
                         normalised_features=(normalisers[i].transform(feature_vector))
                         index += 1
+                        
                 norm_features = np.array(normalised_features)
                 return norm_features.T
             else:
@@ -100,30 +118,7 @@ class PluginFeatureExtractor:
         else:
             print ("Please train normalisers using PluginFeatureExtractor.fit_normalisers().")
 
-    # def add_patch_indices(self, patch : Patch):
-    #     tuple_patch = []
-    #     for i in range(len(patch)):
-    #         tuple_patch += [(i, float(patch[i]))]
-    #     return tuple_patch
-
-    # def remove_patch_indices(self, patch):
-    #     return np.array([parameter[1] for parameter in patch])
-
-    # def list_patch(self):
-    #     lines = self.engine.get_plugin_parameters_description()
-    #     if self.patch == None:
-    #         print (lines)
-    #     else:
-    #         lines = lines.split('\n')
-    #         lines_with_values = []
-    #         print ( len(lines) )
-    #         for i, ln in enumerate(lines):
-    #             if ln != "":
-    #                 value = self.patch[i]
-    #                 line = '{0: <22}'.format(ln) + "(" + str(value) + ")"
-    #                 lines_with_values.append(line)
-    #         print ("\n".join(str(x) for x in lines_with_values))
-
+    # Récupère les audio frames du patch chargé
     def get_audio_frames(self):
         if self.rendered_patch:
             audio = np.array(self.engine.get_audio_frames())
@@ -133,18 +128,12 @@ class PluginFeatureExtractor:
         else:
             print ("Please set and render a patch before trying to get audio frames.")
 
-    # def write_to_wav(self, path):
-    #     if self.rendered_patch:
-    #         float_audio = np.array(self.get_audio_frames())
-    #         int_audio = self.float_to_int_audio(float_audio)
-    #         scipy.io.wavfile.write(path, 44100, int_audio)
-    #     else:
-    #         print ("Render a patch first before writing to file!")
-
+    # Passe les valeurs des audio frames en int
     def float_to_int_audio(self, float_audio_frames):
         float_audio_frames *= 32768
         return np.clip(float_audio_frames, -32768, 32767).astype(np.int16)
 
+    # Randomise les valeurs du patch actuel 
     def  get_random_example(self): # TODO WIP
         if self.loaded_plugin:
             while True:
@@ -153,11 +142,6 @@ class PluginFeatureExtractor:
                 self.plugin_patch.override_parameters()
                 
                 self.set_patch(self.plugin_patch.patch)
-                
-                # random_patch_list_tuples = self.generator.get_random_patch() # TO SLOW
-                # random_patch = np.array([p[1] for p in random_patch_list_tuples])
-                # random_patch = self.patch_to_partial_patch(random_patch)
-                # self.set_patch(random_patch_list_tuples)
                 
                 int_audio_frames = self.float_to_int_audio(np.array(self.get_audio_frames()))
                 feature_vector = self.get_desired_features(int_audio_frames)
@@ -174,10 +158,11 @@ class PluginFeatureExtractor:
                                                 self.sample_rate,
                                                 self.frame_size_samples,
                                                 self.frame_step_samples, deltas=False,) # Ne calcule pas les deltas, deux fois moins d'operations pour le même résultat
-        output = []
-        for desired_index in self.desired_features_indices:
-            output.append(feature_vector[desired_index])
-        return np.array(output)
+        # output = []
+        # for desired_index in self.desired_features_indices:
+        #     output.append(feature_vector[desired_index])
+        # return np.array(output)
+        return np.array(feature_vector[0:21])
 
     def get_file_paths(self):
         if not self.pickle_path.endswith('/') and self.pickle_path != "":
@@ -217,6 +202,7 @@ class PluginFeatureExtractor:
     def need_to_fit_normalisers(self):
         return not self.pickle_files_exist()
 
+    # Renvoie des features normalisées et leur patch associé
     def get_random_normalised_example(self):
         with warnings.catch_warnings():
             warnings.simplefilter(self.warning_mode)
@@ -232,7 +218,6 @@ class PluginFeatureExtractor:
                     if i in self.desired_features_indices:
                         normalised_features= normalisers[i].transform(features.T)
      
-
                 norm_features = np.array(normalised_features)
 
                 assert norm_features.T.shape == features.shape
@@ -264,17 +249,14 @@ class PluginFeatureExtractor:
                     
 
     def fit_normalisers(self, amount):
-        # if len(self.desired_features_indices) != 21:
-        #     print ("Please set the feature extractor to extract all available features!") # peut être ne pas demander à l'utilisateur les features souhaitées
-        #     return
         with warnings.catch_warnings():
             warnings.simplefilter(self.warning_mode)
             path = os.path.dirname(os.path.dirname(__file__)) + "/data/" + self.pickle_path
             print ("\nBeginning to fit normalisers in " + path)
-            f = self.get_random_example()
-            (y, x) = f.shape
 
             # Get the features for fitting and reshape them.
+            f = self.get_random_example()
+            (y, x) = f.shape
             all_features = np.empty([amount, y, x])
             for i in trange(amount, desc="Rendering Examples"):
                 features = self.get_random_example()
@@ -293,12 +275,3 @@ class PluginFeatureExtractor:
                     os.makedirs(self.pickle_path)
 
                 joblib.dump(normalisers[i], pickle_paths[i])
-
-    def overrideParameters(self,parameters):
-        for(index,value) in self.overriden_parameters:
-            parameters[index] = value
-        return parameters
-    
-    def render_patch(self, patch):
-        self.set_patch(patch)
-        return self.get_audio_frames()

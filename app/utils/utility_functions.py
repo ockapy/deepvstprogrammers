@@ -9,19 +9,19 @@ import struct
 def getTestSize(arg):
     match arg:
         case "--small":
-            normalisers_size = 100
+            normalisers_size = 1000
             test_size = 10
-            iterations = 1
+            iterations = 25
             samplesCount = 10
         case "--medium":
-            normalisers_size = 500
+            normalisers_size = 5000
             test_size = 25
-            iterations = 5
+            iterations = 50
             samplesCount = 25
         case "--large":
-            normalisers_size = 1000
+            normalisers_size = 10000
             test_size = 50
-            iterations = 10
+            iterations = 100
             samplesCount = 50
         case "--default":
             # Test technique de débug

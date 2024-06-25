@@ -28,8 +28,7 @@ class HillClimber:
         Greater is better.
         """
         
-        self.extractor.plugin_patch.update_values(individual)   
-        features = self.extractor.get_features_from_patch(self.extractor.plugin_patch.patch)
+        features = self.extractor.get_features_from_patch(individual)
         
         
         target = self.targets[self.target_index]
