@@ -1,0 +1,19 @@
+OP#: Operator #
+    EG: Envelope generator
+        R#: Rate #
+        L#: Level #
+    KS: Keyboard scaling
+        BP: Break point
+        LD: Left depth
+        RD: Right depth
+        LC: Left curve
+        RC: Right curve
+    SN: Sensitivity
+        MS: Modulation sensitivity
+        TS: Touch sensitivity
+    TL: Total level
+    OSC: Oscillator
+        MD: Mode
+        FC: Frequence coarse
+        FF: Frequence fine
+        DT: Detune
