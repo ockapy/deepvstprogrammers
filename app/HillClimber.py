@@ -5,12 +5,12 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 
 import pickle
-import warnings
-import matplotlib.pyplot as plt
 import scipy
+import warnings
 import numpy as np
+import matplotlib.pyplot as plt
+import utils.utility_functions as ult
 import utils.data_set_generator as generator
-
 
 from models.hill_climber.hill_climber import HillClimber
 from utils.plugin_feature_extractor import PluginFeatureExtractor
@@ -22,24 +22,6 @@ except IndexError:
     arg = "--default"
     
 root = os.path.dirname(__file__)
-
-def setTestSize(arg):
-    if(arg == "--small"):
-        normalisers_size = 1000
-        test_size = 0
-        iterations = 25
-        samplesCount = 0
-    elif(arg == "--medium"):
-        normalisers_size = 1000
-        test_size = 25
-        iterations = 5
-        samplesCount = 25
-    elif(arg == "--large"):
-        normalisers_size = 10000
-        test_size = 50
-        iterations = 10
-        samplesCount = 50
-    return normalisers_size, test_size, iterations, samplesCount
 
 with warnings.catch_warnings():
     operator_folder = ""
@@ -75,8 +57,7 @@ with warnings.catch_warnings():
     path = root+"/VST/Dexed"
     extractor.load_plugin(path)
 
-
-    normalisers_size, test_size, iterations, samplesCount = setTestSize(arg)
+    normalisers_size, test_size, iterations, samplesCount = ult.getTestSize(arg)
     generator.generateFromSysex(extractor,normalisers_size,samplesCount)
 
     # Get training and testing batch.

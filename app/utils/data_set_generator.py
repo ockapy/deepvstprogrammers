@@ -7,10 +7,13 @@ import glob
 import numpy as np
 import scipy.io.wavfile
 import sysex_data_extractor as sd
+
 from tqdm import trange
 
+# Get the path to the root directory of the project
 root = os.path.dirname(os.path.dirname(__file__))
 
+# Create data and stats folders if non existant
 def checkfolders():
     if not os.path.exists(root+"/data/dataset/audio/"):
         os.makedirs(root+"/data/dataset/audio/")
@@ -58,6 +61,8 @@ def get_batches(train_batch_size, test_batch_size, extractor,operator_folder):
     return train_batch_x, train_batch_y, test_batch_x, test_batch_y
 
 
+
+# Generate one batch
 def generate_train_batches(train_batch_size,extractor):
     (frames, patch) = extractor.get_random_normalised_example()
     f_shape = np.array(frames).shape
@@ -67,7 +72,7 @@ def generate_train_batches(train_batch_size,extractor):
 
     return train_batch_x, train_batch_y
 
-
+# Generate test dataset from a sysex bank
 def generate_test_dataset(extractor,operator_folder,sysex_bank_path=None):
     (frames, patch) = extractor.get_random_normalised_example()
     f_shape = np.array(frames).shape
@@ -95,7 +100,6 @@ def generate_test_dataset(extractor,operator_folder,sysex_bank_path=None):
 def generate_data(extractor,size,samplesCount):
     
     checkfolders()
-    
     clear()
     
     if extractor.need_to_fit_normalisers():
