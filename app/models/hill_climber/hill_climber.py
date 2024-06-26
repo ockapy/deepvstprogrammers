@@ -46,6 +46,10 @@ class HillClimber:
             for j in range(len(self.candidate)):
                 increment = self.step_size[t][i] * self.candidate[j]
                 self.current_point[t][i] += increment
+                if(self.current_point[t][i] > 1):
+                    self.current_point[t][i] = 1.0
+                if(self.current_point[t][i] < 0):
+                    self.current_point[t][i] = 0
                 temp = 0
                 for _ in range(self.averaging_amt):
                     temp += self.get_fitness(self.current_point[t])
