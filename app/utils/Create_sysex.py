@@ -61,19 +61,19 @@ def encode_Operator(operator):
     # Ensure each value fits into its respective bit range
     pitch_rate = [round(value * 99) for value in operator[0:4]]
     pitch_level = [round(value * 99) for value in operator[4:8]]
-    output_level = round(operator[8] * 99) # Mauvais parsing
+    output_level = round(operator[8] * 99) 
     osc_mode = round(operator[9])
-    freq_coarse = round(operator[10] * 31) # Mauvais parsing
-    freq_fine = round(operator[11] * 99) # Mauvais parsing
-    detune = round(operator[12] * 14) # Mauvais parsing
+    freq_coarse = round(operator[10] * 31) 
+    freq_fine = round(operator[11] * 99) 
+    detune = round(operator[12] * 14) 
     break_point = round(operator[13] * 99)
     l_scale_depth = round(operator[14] * 99)
-    r_scale_depth = round(operator[15] * 99) # Mauvais parsing
+    r_scale_depth = round(operator[15] * 99) 
     l_key_curve = round(operator[16]*3)
-    r_key_curve = round(operator[17]*3) # Mauvais parsing
-    osc_rate_scale = round(operator[18] * 7) # Mauvais parsing
+    r_key_curve = round(operator[17]*3) 
+    osc_rate_scale = round(operator[18] * 7) 
     amp_mod_sens = round(operator[19] * 3)
-    key_vel_sens = round(operator[20] * 7) # Mauvais parsing
+    key_vel_sens = round(operator[20] * 7) 
     
     if (break_point > 99 or break_point < 0):
         raise Exception("break_point not in range 0-99")

@@ -54,7 +54,7 @@ class Converter:
             self.patch.append(coarse)
             self.patch.append(op.osc.frequency["fine"]/99)
             self.patch.append(detune)
-            self.patch.append(op.scaling.break_point/99) # Potential error
+            self.patch.append(op.scaling.break_point/99)
             self.patch.append(op.scaling.left_depth/99)
             self.patch.append(op.scaling.right_depth/99)
             self.patch.append(left_curve)
