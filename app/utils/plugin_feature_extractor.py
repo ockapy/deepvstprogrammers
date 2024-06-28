@@ -106,10 +106,13 @@ class PluginFeatureExtractor:
                 normalisers = [joblib.load(files[i]) for i in range(len(files))]
                 index = 0
                 
-                for i in range(len(normalisers)):
-                    if i in self.desired_features_indices:
-                        normalised_features=(normalisers[i].transform(feature_vector))
-                        index += 1
+               
+                normalised_features=normalisers[0].transform(feature_vector)
+
+                # for i in range(len(normalisers)):
+                #     if i in self.desired_features_indices:
+                #         normalised_features=(normalisers[i].transform(feature_vector)) # Pas de sens car tout les transformations donnent le même résultat...
+                #         index += 1
                         
                 norm_features = np.array(normalised_features)
                 return norm_features.T

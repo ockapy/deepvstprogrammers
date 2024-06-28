@@ -8,7 +8,8 @@ import pickle
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
-import data_set_generator as generator
+import utils.data_set_generator as generator
+import utils.utility_functions as ult
 
 
 
@@ -23,34 +24,6 @@ except IndexError:
     arg = "--default"
     
 root = os.path.dirname(__file__)
-
-def setTestSize(arg):
-    # Recupère des valeurs sur la taille du test en fonction de l'argument
-    match arg:
-        case "--small":
-        normalisers_size = 100
-        test_size = 10
-        iterations = 1
-        samplesCount = 10
-    match "--medium":
-        normalisers_size = 500
-        test_size = 25
-        iterations = 5
-        samplesCount = 25
-    match "--large":
-        normalisers_size = 1000
-        test_size = 50
-        iterations = 10
-        samplesCount = 50
-    match "--default":
-        # Teste technique de débug
-        normalisers_size = 10
-        test_size = 5
-        iterations = 1
-        samplesCount = 5
-    return normalisers_size, test_size, iterations, samplesCount
-
-
 
 with warnings.catch_warnings():
  
@@ -70,18 +43,18 @@ with warnings.catch_warnings():
     alg = (1.0 / 32.0) * float(algorithm_number - 1) + 0.001
     
     # Paramètre fixé pour la génération des exemples
-    overriden_parameters = [(0, 1.0), (2, 1.0), (3, 0.5), (4, alg),(5, 0.2),(6,0.0), # PARAMETRES GENERAUX
-                            (7,0.0), (8,0.0), (9,0.0), (10,0.), (11,0.0), (12,0.0), # PARAMETRES LFO
-                            (15,1.0),(16,1.0),(17,1.0), (18,1.0),(19,0.5),(20,0.5),(21,0.5),(22,0.5), # PITCH EG RATE ET LEVEL
-                            (29,1.0),(51,1.0),(73,1.0),(95,1.0),(117,1.0),(139,1.0), # EG 3 LEVEL
-                            (31,1.0), #(53,1.0),(75,1.0),(97,1.0),(119,1.0),(141,1.0), # Volume des opérateurs
-                            (26, 1.0),  (30, 0.0),  (48, 1.0),  (52, 0.0),  # ASSURE QUE CHAQUE NOTE SE TERMINE (EG 4 rate et level)
-                            (70, 1.0),  (74, 0.0),  (92, 1.0),  (96, 0.0), 
-                            (114, 1.0), (118, 0.0), (136, 1.0), (140, 0.0)]
+    # overriden_parameters = [(0, 1.0), (2, 1.0), (3, 0.5), (4, alg),(5, 0.2),(6,0.0), # PARAMETRES GENERAUX
+    #                         (7,0.0), (8,0.0), (9,0.0), (10,0.), (11,0.0), (12,0.0), # PARAMETRES LFO
+    #                         (15,1.0),(16,1.0),(17,1.0), (18,1.0),(19,0.5),(20,0.5),(21,0.5),(22,0.5), # PITCH EG RATE ET LEVEL
+    #                         (29,1.0),(51,1.0),(73,1.0),(95,1.0),(117,1.0),(139,1.0), # EG 3 LEVEL
+    #                         (31,1.0), #(53,1.0),(75,1.0),(97,1.0),(119,1.0),(141,1.0), # Volume des opérateurs
+    #                         (26, 1.0),  (30, 0.0),  (48, 1.0),  (52, 0.0),  # ASSURE QUE CHAQUE NOTE SE TERMINE (EG 4 rate et level)
+    #                         (70, 1.0),  (74, 0.0),  (92, 1.0),  (96, 0.0), 
+    #                         (114, 1.0), (118, 0.0), (136, 1.0), (140, 0.0)]
     
     extractor = PluginFeatureExtractor(midi_note=24, note_length_secs=0.4,
                                    desired_features=desired_features,
-                                   overriden_parameters=overriden_parameters,
+                                   overriden_parameters=[],
                                    render_length_secs=0.4,
                                    pickle_path=root+"/data/normalisers",
                                    warning_mode="ignore", normalise_audio=False)
@@ -89,7 +62,7 @@ with warnings.catch_warnings():
     path = root+"/VST/Dexed"
     extractor.load_plugin(path)
     
-    normalisers_size, test_size, iterations, samplesCount = setTestSize(arg)
+    normalisers_size, test_size, iterations, samplesCount = ult.getTestSize(arg)    
     generator.generate_data(extractor,normalisers_size,samplesCount)
 
 

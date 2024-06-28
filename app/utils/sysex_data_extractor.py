@@ -318,4 +318,7 @@ def bankToPatches(voices):
         patches.append(patch)
     return patches
 
+# Documentation originale mais fausse :
 # https://forum.pdpatchrepo.info/uploads/files/1611522180187-sysex-format.txt
+
+# Se référer à la documentation "Sysex data strucutre.txt" à la racine du projet pour une version corrigée.
