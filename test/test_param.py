@@ -39,22 +39,22 @@ class Syntax:
     
     # Charge une syntaxe de puis le fichier
     def load(self,path):
-        current_level = 0
-        space_per_level = 0
-        current_node = None
-        with open(path,"r") as file:
+        # Ouverture du fichier
+        self.file = open(path,"r")
+        # Lance l'appel récursif
+        self.loadRec(self.root,0)
+        # lecture du premier noeud
+        line = file.readline()
+        line = line.rstrip()
+        # Determine le niveau en calculant le nombre de caractères vides au début de la ligne
+        linelevel = len(line)-len(line.lstrip())
+        # récupère d'arbre de cette ligne
+        newNode = self.loadRec(line,linelevel)
+        # Ajoute ce noeud
+        self.nodes.append(newNode)
+
             for line in file:
-                line = line.rstrip()
-                # Determine le niveau
-                level = len(line)-len(line.lstrip())
-                # Trouve le nombre d'espaces par niveau
-                if level != 0:
-                    if space_per_level == 0:
-                        space_per_level = level
-                        level = 1
-                    else:
-                        # Calcule le niveau par comptage du nombre d'espaces
-                        level = int(level / space_per_level)
+                
                 # Si on retourne au niveau 0 on redémmage avec un nouveau noeud racine
                 if level == 0:
                     # Nouveau noeud de niveau zéro
@@ -75,6 +75,52 @@ class Syntax:
                         current_level = level
                         current_node = node
                 #print(level,line)
+
+    
+    # Chargement recursif à partir de la ligne et d'un niveau
+    # Retourne le noeud crée à partir de cette ligne et le reste de l'arbre
+    def loadRec(line,level):
+        newNode = SyntaxNode.new(line)
+
+        # Lecture d'une ligne du fichier
+        line = file.readline()
+        # Niveau de la ligne lue
+        linelevel = level
+        # Test fin de fichier
+        while line and linelevel == level:
+            # On n'est pas à la fin du fichier
+            line = line.rstrip()
+            # Determine le niveau en calculant le nombre de caractères vides au début de la ligne
+            linelevel = len(line)-len(line.lstrip())
+            newNode = SyntaxNode.new(line)
+            if linelevel == level:
+                node.append(newNode)
+            elif linelevel > level:
+                # Ce niveau est terminé
+                return
+            else:
+    # Retourne la liste des noeuds de ce niveau
+    def parse_tree(current_indent=0):
+        nodes = []
+        line = file.readline()
+        # Tant qu'on n'est pas à la fin du fichier
+        while line:
+            stripped_line = line.lstrip()
+            indent_level = len(line) - len(stripped_line)
+            # 
+            if indent_level < current_indent:
+                break
+            
+            node = TreeNode(int(stripped_line))
+            if lines and len(lines[0]) - len(lines[0].lstrip()) > indent_level:
+                node.children = parse_tree(lines, indent_level + 1)
+            nodes.append(node)
+        
+        return nodes
+
+
+
+
 
 syntax = Syntax("dx7_meaning.txt")
 print(vars(syntax))
